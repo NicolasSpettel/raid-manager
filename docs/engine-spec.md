@@ -39,8 +39,9 @@ depends on this literally (stream hash).
 - `SeededRng` (Mulberry32 or PCG — pick once in M0, never change silently; the choice is part of
   the golden contract) is threaded explicitly. Any code path needing randomness receives the rng;
   nothing constructs its own.
-- Lint bans `Math.random`, `Date.now`, `performance.now` in engine/content/game. One
-  allow-listed file in `app` for cosmetic-only effects (screen shake jitter etc.).
+- A **Roslyn banned-API analyzer** fails the build on `System.Random`, `DateTime.Now`,
+  `DateTime.UtcNow`, and `Guid.NewGuid` in Engine/Content/Game. One allow-listed file in `App`
+  for cosmetic-only effects (screen shake jitter etc.).
 - Iteration order is deterministic: combatants live in insertion-ordered `Map`s; any sort has a
   total ordering with id tiebreaker. No object-key iteration for anything order-sensitive.
 - Floats are allowed in *values* (damage math) but never in *time*; rounding happens at defined
@@ -232,7 +233,7 @@ How the roster "plays" the fight — where management decisions become combat ou
 
 ## 10. Performance budget
 
-- Target: 25-man, 8-minute fight (4,800 ticks), < 150ms sim time in the worker, < 50k events.
+- Target: 25-man, 8-minute fight (4,800 ticks), < 150ms sim time on a background thread, < 50k events.
 - No allocation inside per-tick system loops except emitted events; queue nodes pooled if
   profiling demands (not preemptively).
 - `src/Sim` ships a `--profile` flag from M0 (tick-loop timing histogram) so perf regressions

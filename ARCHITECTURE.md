@@ -47,7 +47,7 @@ PC-first, standalone executable; optional Steam stats/leaderboard upload only.
 | [docs/research/boss-design-reference.md](docs/research/boss-design-reference.md) | WoW boss anatomy + warcraftlogs report anatomy → our archetype/event/report requirements | Designing encounters or report UIs |
 | [docs/research/gear-stats-reference.md](docs/research/gear-stats-reference.md) | WoW's stat-design history (what got removed and why) → our stat recommendation | Designing items/stats/combat math |
 | [docs/research/wow-damage-model-reference.md](docs/research/wow-damage-model-reference.md) | Vanilla WoW L60 damage/armor/spell formulas → our proposed combat math (very close, cleaner) | Implementing the damage model / combat formulas |
-| [docs/adr/](docs/adr/) | One decision per file, immutable; superseded, never edited | Questioning a decision |
+| [docs/adr/](docs/adr/) | One decision per file; immutable once code depends on it — then superseded, never edited (revisable in place only pre-code) | Questioning a decision |
 | [docs/dm1-lessons.md](docs/dm1-lessons.md) | DM1's ten scars → the decision answering each | Before violating a convention |
 
 ## Decisions: locked vs provisional vs open

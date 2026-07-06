@@ -24,8 +24,8 @@ A red gate blocks merge. There is no "we'll fix CI later" phase — M0's floor i
 - **Two workflows, never mixed** (BLUEPRINT §10): refactor commits keep hashes identical; balance
   commits re-bless via `sim golden --update` with the diff summarized in the commit body.
 - Determinism guards alongside: same seed twice ⇒ identical stream; 10 different seeds ⇒ 10
-  different streams (catches accidental rng bypass); run under node AND worker (same hash) to
-  catch environment leaks.
+  different streams (catches accidental rng bypass); the same seed run from `Sim` and from the
+  Godot `App` yields the same hash (the M0 floor) — catching environment leaks.
 
 ## 2. Drift tests
 

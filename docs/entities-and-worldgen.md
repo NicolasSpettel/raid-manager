@@ -67,7 +67,7 @@ Why components, concretely:
 ## 3. Generation — a deterministic, declarative pipeline
 
 World-gen lives in `src/Game`, is fully seeded (shares the engine's `SeededRng`, no
-`Math.random`), and is a **pipeline of pure, composable stages**, not imperative spaghetti:
+`System.Random`), and is a **pipeline of pure, composable stages**, not imperative spaghetti:
 
 ```
 worldSeed
@@ -161,7 +161,7 @@ architecture**, not three. That unification is the point of doing this properly 
 ## 8. Testing
 
 - **World-gen golden test:** seed 1 ⇒ a fixed world hash. Regeneration determinism across
-  node/app/CI.
+  Sim/App/CI.
 - **Distribution tests:** generated worlds match archetype targets — no accidental all-5-star
   world, star curve per prestige tier within tolerance, role coverage guaranteed per guild.
 - **Coherence assertions:** e.g. no unit with top twitch attributes *and* max age; stars track

@@ -1,8 +1,10 @@
 # Raid Manager — Architecture Blueprint
 
 > Working title. Sequel to Dungeon Manager (DM1). This document is the spine: it states every
-> architectural decision and links to the spec that details it. Decisions live in `adr/` and are
-> immutable once accepted — revisiting one means writing a superseding ADR, not editing history.
+> architectural decision and links to the spec that details it. Decisions live in `adr/`. **Once
+> code depends on an ADR it is immutable** — revisiting it means writing a superseding ADR, not
+> editing history. During the pre-code design phase an ADR may still be revised in place (as 0001
+> and 0002 were during the Godot pivot); after the first commit that rule hardens.
 
 **Status:** Draft v1 · July 2026 · No code exists yet, and that is deliberate.
 
@@ -110,9 +112,10 @@ The engine is a pure function:
 simulateEncounter(input: { rng: SeededRng; config: SimConfig; raid: RaidSetup; encounter: EncounterDef }): SimResult
 ```
 
-- **Deterministic by construction.** The RNG is a required argument with no fallback. Lint bans
-  `Math.random`, `Date.now`, `performance.now` across engine/content/game (one allow-listed
-  cosmetic file in `app`). Same inputs ⇒ byte-identical output, forever, on every machine.
+- **Deterministic by construction.** The RNG is a required argument with no fallback. A Roslyn
+  banned-API analyzer fails the build on `System.Random`, `DateTime.Now`/`UtcNow`, and
+  `Guid.NewGuid` across Engine/Content/Game (one allow-listed cosmetic file in `App`). Same
+  inputs ⇒ byte-identical output, forever, on every machine.
 - **Time is fixed integer ticks** (10 ticks = 1 second of battle time), not turns. Boss timelines
   ("tank swap at 0:45", "AoE every 20s"), cast bars, and overlapping timers are natural in ticks
   and awkward in turns — and watchable playback needs them. The sim still runs to completion
@@ -236,7 +239,7 @@ model — [engine-spec.md](engine-spec.md) §8.)
 - Components < 300 lines, pure modules < 400 (lint warning, reviewed at PR).
 - Every content fact exists in exactly one row. If you're typing a number a second time, stop.
 - Refactor commits keep golden hashes identical. Balance commits re-bless them. Never both.
-- No `Math.random`, `Date.now`, `performance.now` outside the one allow-listed app file.
+- No `System.Random`, `DateTime.Now`/`UtcNow`, or `Guid.NewGuid` outside the one allow-listed `App` file (enforced by the banned-API analyzer).
 
 ## 11. Milestone roadmap
 
