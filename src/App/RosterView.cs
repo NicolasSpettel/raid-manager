@@ -18,6 +18,7 @@ public partial class RosterView : Control
         Difficulty difficulty,
         Action<EncounterDef> onStartRaid,
         Action onCycleDifficulty,
+        Action onRest,
         Action onRecruit,
         Action onSave)
     {
@@ -73,28 +74,37 @@ public partial class RosterView : Control
             });
         }
 
-        var buttons = new HBoxContainer();
-        buttons.AddThemeConstantOverride("separation", 10);
+        var raidRow = new HBoxContainer();
+        raidRow.AddThemeConstantOverride("separation", 10);
+        foreach (EncounterDef encounter in Encounters.All)
+        {
+            var raidButton = new Button { Text = $"Raid: {encounter.Name}" };
+            raidButton.Pressed += () => onStartRaid(encounter);
+            raidRow.AddChild(raidButton);
+        }
+
+        root.AddChild(raidRow);
+
+        var actionRow = new HBoxContainer();
+        actionRow.AddThemeConstantOverride("separation", 10);
 
         var difficultyButton = new Button { Text = $"Difficulty: {difficulty}" };
         difficultyButton.Pressed += () => onCycleDifficulty();
-        buttons.AddChild(difficultyButton);
+        actionRow.AddChild(difficultyButton);
 
-        foreach (EncounterDef encounter in Encounters.All)
-        {
-            var raidButton = new Button { Text = $"Raid  —  {encounter.Name}" };
-            raidButton.Pressed += () => onStartRaid(encounter);
-            buttons.AddChild(raidButton);
-        }
+        var restButton = new Button { Text = "Rest" };
+        restButton.Pressed += () => onRest();
+        actionRow.AddChild(restButton);
 
         var recruitButton = new Button { Text = $"Recruit ({Recruitment.Cost}g)" };
         recruitButton.Pressed += () => onRecruit();
-        buttons.AddChild(recruitButton);
+        actionRow.AddChild(recruitButton);
 
         var saveButton = new Button { Text = "Save Guild" };
         saveButton.Pressed += () => onSave();
-        buttons.AddChild(saveButton);
-        root.AddChild(buttons);
+        actionRow.AddChild(saveButton);
+
+        root.AddChild(actionRow);
     }
 
     private static Label LastRaidBanner(RaidSummary last)

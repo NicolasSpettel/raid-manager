@@ -60,8 +60,16 @@ public partial class Main : Control
         var view = new RosterView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
         view.Load(_guild, _difficulty,
-            onStartRaid: StartRaid, onCycleDifficulty: CycleDifficulty, onRecruit: Recruit, onSave: SaveGuild);
+            onStartRaid: StartRaid, onCycleDifficulty: CycleDifficulty, onRest: Rest, onRecruit: Recruit, onSave: SaveGuild);
         Swap(view);
+    }
+
+    private void Rest()
+    {
+        _guild = Downtime.Rest(_guild);
+        _saves.Save(_guild);
+        GD.Print("the guild rested; injuries recovered a step");
+        ShowRoster();
     }
 
     private void Recruit()
