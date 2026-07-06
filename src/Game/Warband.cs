@@ -33,6 +33,12 @@ public static class Warband
             AttackDamage = cls.BaseStats.AttackDamage + bonusAttack,
         };
 
+        if (raider.InjuryRaidsLeft > 0)
+        {
+            // An injured raider fights at reduced strength until they recover.
+            stats = stats with { MaxHp = stats.MaxHp * 70 / 100, AttackDamage = stats.AttackDamage * 70 / 100 };
+        }
+
         IReadOnlyList<AbilityDef> kit = cls.Kit.Select(Abilities.Registry.Def).ToList();
         return new CombatantSpec(
             new CombatantId(raider.Id), CombatantKind.Raider, Side.Raid, cls.Role, raider.Name, stats, kit);

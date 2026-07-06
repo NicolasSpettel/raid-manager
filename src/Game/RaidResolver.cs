@@ -18,6 +18,7 @@ public static class RaidResolver
     private const int WipeGold = 100;
     private const int WinBaseXp = 100;
     private const int WipeBaseXp = 40;
+    private const int InjuryDuration = 2; // raids a fallen raider fights at reduced strength
 
     public static (GuildSave Guild, RaidSummary Summary) Resolve(
         GuildSave guild, SimResult result, EncounterDef encounter, ulong lootSeed)
@@ -62,7 +63,9 @@ public static class RaidResolver
 
             int gain = baseXp + ((dealt + healed) / 20);
             (int level, int xp) = ApplyXp(raider.Level, raider.Xp, gain);
-            newRoster.Add(raider with { Level = level, Xp = xp });
+
+            int injury = fell ? InjuryDuration : Math.Max(0, raider.InjuryRaidsLeft - 1); // hurt, or recovering
+            newRoster.Add(raider with { Level = level, Xp = xp, InjuryRaidsLeft = injury });
         }
 
         string? lootDropped = win ? DropLoot(newRoster, encounter.Id, lootSeed) : null;

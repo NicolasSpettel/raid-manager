@@ -16,13 +16,14 @@ public sealed record Migration(int From, string Note, Func<JsonNode, JsonNode> M
 public static class SaveMigrations
 {
     /// <summary>The current save format version. Bumped by every breaking change.</summary>
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     /// <summary>Ordered {from → from+1} migrations, applied in sequence at load.</summary>
     public static IReadOnlyList<Migration> All { get; } = new List<Migration>
     {
         new(1, "v2: add per-raider level/xp and a raid-history log", MigrateV1ToV2),
         new(2, "v3: add per-raider equipped gear", MigrateV2ToV3),
+        new(3, "v4: add per-raider injury tracking", MigrateV3ToV4),
     };
 
     // v1 saves have no progression or history; add sensible defaults so nothing is lost.
@@ -59,6 +60,25 @@ public static class SaveMigrations
                 if (entry is JsonObject raider)
                 {
                     raider["equipped"] ??= new JsonArray();
+                }
+            }
+        }
+
+        return node;
+    }
+
+    private static JsonNode MigrateV3ToV4(JsonNode node)
+    {
+        JsonObject obj = node.AsObject();
+        obj["version"] = 4;
+
+        if (obj["roster"] is JsonArray roster)
+        {
+            foreach (JsonNode? entry in roster)
+            {
+                if (entry is JsonObject raider)
+                {
+                    raider["injuryRaidsLeft"] ??= 0;
                 }
             }
         }

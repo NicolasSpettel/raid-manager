@@ -28,7 +28,8 @@ public sealed record RaiderRecord(
     string ClassId,
     int Level = 1,
     int Xp = 0,
-    IReadOnlyList<string>? Equipped = null);
+    IReadOnlyList<string>? Equipped = null,
+    int InjuryRaidsLeft = 0);
 
 /// <summary>Guild finances (M1: gold only).</summary>
 public sealed record Economy(int Gold);

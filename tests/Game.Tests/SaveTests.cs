@@ -93,6 +93,7 @@ public class SaveTests
         Assert.Equal("guardian", save.Roster[0].ClassId);
         Assert.Equal(1, save.Roster[0].Level);   // v2 migration backfilled progression
         Assert.NotNull(save.History);            // v2 migration added the history log
-        Assert.NotNull(save.Roster[0].Equipped); // v3 migration added the equipped-gear list
+        Assert.NotNull(save.Roster[0].Equipped);           // v3 migration added the equipped-gear list
+        Assert.Equal(0, save.Roster[0].InjuryRaidsLeft);   // v4 migration added injury tracking
     }
 }
