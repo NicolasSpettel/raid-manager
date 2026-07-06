@@ -163,4 +163,19 @@ internal sealed class Combatant
 
         return false;
     }
+
+    /// <summary>Spend a ready taunt ability if this combatant has one. Reactive.</summary>
+    public bool TryUseTaunt(int tick)
+    {
+        foreach (AbilityDef ability in Abilities)
+        {
+            if (ability.Effect is TauntEffect && tick >= CooldownReadyAt(ability.Id))
+            {
+                SetCooldownReadyAt(ability.Id, tick + ability.CooldownTicks);
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

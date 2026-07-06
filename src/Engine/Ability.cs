@@ -24,6 +24,9 @@ public sealed record DirectHeal(int Amount, int Variance) : AbilityEffect;
 /// <summary>A utility interrupt — stops an enemy's interruptible cast. Reactive; never cast proactively.</summary>
 public sealed record InterruptEffect : AbilityEffect;
 
+/// <summary>A taunt — seizes threat so the enemy targets the taunter (a tank grabbing aggro). Reactive.</summary>
+public sealed record TauntEffect : AbilityEffect;
+
 /// <summary>
 /// The mechanical definition of an ability, as the engine executes it. Content authors richer rows
 /// (name, tooltip) and projects them to this via a factory — the engine stays Content-agnostic.

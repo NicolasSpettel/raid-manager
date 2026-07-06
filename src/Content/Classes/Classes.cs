@@ -12,7 +12,7 @@ public static class Classes
     public static ClassDef Guardian { get; } = new(
         "guardian", "Guardian", CombatantRole.Tank,
         new StatBlock(MaxHp: 900, AttackDamage: 6, AttackVariance: 2, SwingIntervalTicks: 8),
-        new[] { "guardian.shield_slam" });
+        new[] { "guardian.shield_slam", "guardian.taunt" });
 
     public static ClassDef Cleric { get; } = new(
         "cleric", "Cleric", CombatantRole.Healer,
@@ -45,7 +45,7 @@ public static class Classes
     public static ClassDef Paladin { get; } = new(
         "paladin", "Paladin", CombatantRole.Tank,
         new StatBlock(MaxHp: 950, AttackDamage: 6, AttackVariance: 2, SwingIntervalTicks: 8),
-        new[] { "paladin.consecrate" });
+        new[] { "paladin.consecrate", "paladin.hand_of_reckoning" });
 
     // Declared last so the class properties above are initialized before the registry reads them.
     // Order matters: the first four (one per role) seed CreateStarter's guaranteed role coverage.

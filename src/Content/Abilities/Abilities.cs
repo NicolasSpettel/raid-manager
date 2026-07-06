@@ -81,5 +81,15 @@ public static class Abilities
             Id: "ranger.muzzle", Name: "Muzzle", ClassId: "ranger", SpecId: "marksman",
             CastTicks: 0, GcdTicks: 15, CooldownTicks: 60, Amount: 0, Variance: 0, School: DamageSchool.Physical,
             Priority: 0, Tooltip: "Interrupts an enemy cast. {cooldownSeconds}s cooldown.", Kind: AbilityKind.Interrupt),
+
+        // Taunts (utility, reactive — a tank seizes aggro off whoever pulled it)
+        new AbilityRow(
+            Id: "guardian.taunt", Name: "Taunt", ClassId: "guardian", SpecId: "protection",
+            CastTicks: 0, GcdTicks: 15, CooldownTicks: 30, Amount: 0, Variance: 0, School: DamageSchool.Physical,
+            Priority: 0, Tooltip: "Forces an enemy to attack you. {cooldownSeconds}s cooldown.", Kind: AbilityKind.Taunt),
+        new AbilityRow(
+            Id: "paladin.hand_of_reckoning", Name: "Hand of Reckoning", ClassId: "paladin", SpecId: "protection",
+            CastTicks: 0, GcdTicks: 15, CooldownTicks: 30, Amount: 0, Variance: 0, School: DamageSchool.Physical,
+            Priority: 0, Tooltip: "Forces an enemy to attack you. {cooldownSeconds}s cooldown.", Kind: AbilityKind.Taunt),
     });
 }

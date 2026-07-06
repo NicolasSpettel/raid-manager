@@ -20,10 +20,12 @@ tier-2 boss (the Ashen King), and **difficulty tiers** (Normal/Heroic/Mythic) sc
 guild clears the Ashen King on Normal but wipes it on Mythic; fallen raiders are **injured** and fight
 weaker until they recover (so roster depth matters). **M2 step 1 is in:** a 2D **stage renderer** (tokens,
 live HP, telegraph flashes) sits behind a **Log ↔ Stage toggle** — a second pure consumer of the same
-event stream. Combat now has **threat/tanking** and **interruptible casts** too; the theme is **procedurally
-textured** (stone panels/buttons via `StyleBoxTexture`). `dotnet build -warnaserror` + `dotnet test` green (74 tests).
-**Next (post-slice):** the **taunt / tank-swap** ability, authored texture PNGs + a display font (the last
-visual polish), and **M2 step 2** — engine positions (fixed-point 2D) + move events + telegraph geometry
+event stream. Combat now has **threat/tanking** (tanks generate ×4 threat + a reactive **taunt** to claw aggro back)
+and **interruptible casts** too; the theme is **procedurally textured** (stone panels/buttons via
+`StyleBoxTexture`). `dotnet build -warnaserror` + `dotnet test` green (75 tests).
+**Next (post-slice):** the *proactive* **tank-swap AI** (a tank taunts by reading the other tank's debuff
+stacks — the locked taunt-window design), authored texture PNGs + a display font (the last visual polish),
+and **M2 step 2** — engine positions (fixed-point 2D) + move events + telegraph geometry
 (stand-in-fire), then a richer sprite pass. Plans:
 **[docs/m1-build-plan.md](docs/m1-build-plan.md)** · **[docs/m2-build-plan.md](docs/m2-build-plan.md)**.
 

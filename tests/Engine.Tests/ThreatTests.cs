@@ -28,6 +28,28 @@ public class ThreatTests
         Assert.True(BossDamageOn(result, "r:tank") > BossDamageOn(result, "r:dps"));
     }
 
+    [Fact]
+    public void ATank_WithATaunt_PullsAggroBack_FromAHigherThreatDps()
+    {
+        // Same low-threat tank vs a runaway DPS — a taunt should claw the boss back onto the tank.
+        int withTaunt = TankBossShare(giveTaunt: true);
+        int withoutTaunt = TankBossShare(giveTaunt: false);
+
+        Assert.True(withTaunt > withoutTaunt,
+            $"taunt should raise the tank's damage share: with={withTaunt} without={withoutTaunt}");
+    }
+
+    private static int TankBossShare(bool giveTaunt)
+    {
+        AbilityDef taunt = new(new AbilityId("test.taunt"), CastTicks: 0, GcdTicks: 15,
+            CooldownTicks: 30, Priority: 0, new TauntEffect());
+        var tank = new CombatantSpec(new CombatantId("r:tank"), CombatantKind.Raider, Side.Raid, CombatantRole.Tank, "Tank",
+            new StatBlock(MaxHp: 100_000, AttackDamage: 4, AttackVariance: 0, SwingIntervalTicks: 8), // low threat
+            giveTaunt ? new[] { taunt } : null);
+
+        return BossDamageOn(Fight(tank, Melee("r:dps", damage: 40)), "r:tank"); // dps out-threats the tank
+    }
+
     private static int BossDamageOn(SimResult result, string target) => result.Events
         .OfType<Damage>()
         .Where(d => d.Source.Value == "boss:b" && d.Target.Value == target)

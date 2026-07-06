@@ -110,6 +110,11 @@ public static class Simulator
             return; // dead actors don't swing and don't reschedule — they drain out of the queue
         }
 
+        if (actor.Side == Side.Enemy)
+        {
+            MaybeTaunt(ctx, tick); // give a tank the chance to seize aggro before the enemy picks a target
+        }
+
         Combatant? target = ctx.PickEnemy(actor);
         if (target is null)
         {
@@ -119,6 +124,35 @@ public static class Simulator
         StatBlock stats = actor.Spec.Stats;
         DealDamage(ctx, actor, target, Scale(actor, stats.AttackDamage + Roll(ctx, stats.AttackVariance)), ability: null, tick);
         ScheduleNextSwing(ctx, actor, fromTick: tick);
+    }
+
+    // A tank grabbing aggro: if a non-tank is topping the threat table, a tank with a ready taunt
+    // seizes threat so the enemy swings back onto it. Reactive — no-op when a tank already holds.
+    private static void MaybeTaunt(SimContext ctx, int tick)
+    {
+        Combatant? top = null;
+        foreach (Combatant c in ctx.SpawnOrder)
+        {
+            if (c.Side == Side.Raid && c.IsAlive && (top is null || c.Threat > top.Threat))
+            {
+                top = c;
+            }
+        }
+
+        if (top is null || top.Spec.Role == CombatantRole.Tank)
+        {
+            return; // nobody alive to pull, or a tank is already holding aggro
+        }
+
+        foreach (Combatant c in ctx.SpawnOrder)
+        {
+            if (c.Side == Side.Raid && c.IsAlive && c.Spec.Role == CombatantRole.Tank && c.TryUseTaunt(tick))
+            {
+                c.Threat = top.Threat + (top.Threat / 5) + 100; // seize the top of the threat table (~120%)
+                ctx.Emit(new MechanicEvent(new Tick(tick), c.Id.Value, "taunt"));
+                return;
+            }
+        }
     }
 
     // The role decision point: cast the highest-priority ready, affordable ability that has a target.
@@ -199,9 +233,9 @@ public static class Simulator
         Combatant? bestTarget = null;
         foreach (AbilityDef ability in actor.Abilities)
         {
-            if (ability.Effect is InterruptEffect)
+            if (ability.Effect is InterruptEffect or TauntEffect)
             {
-                continue; // interrupts are reactive — used against boss casts, never picked proactively
+                continue; // interrupts and taunts are reactive — never picked proactively
             }
 
             if (tick < actor.CooldownReadyAt(ability.Id) || actor.Resource < ability.ResourceCost)
@@ -453,6 +487,7 @@ public static class Simulator
                 break;
 
             case MechanicArchetype.TankBuster:
+                MaybeTaunt(ctx, tick); // a tank can grab the buster off a squishy who pulled aggro
                 Combatant? tankTarget = ctx.PickEnemy(boss);
                 if (tankTarget is not null)
                 {
@@ -481,6 +516,7 @@ public static class Simulator
                 break;
 
             case MechanicArchetype.TankDebuff:
+                MaybeTaunt(ctx, tick); // keep the stacking debuff on a tank
                 Combatant? debuffTarget = ctx.PickEnemy(boss);
                 if (debuffTarget is not null)
                 {

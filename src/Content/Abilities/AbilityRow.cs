@@ -10,6 +10,7 @@ public enum AbilityKind
     Damage,
     Heal,
     Interrupt,
+    Taunt,
 }
 
 /// <summary>
@@ -45,6 +46,7 @@ public sealed record AbilityRow(
         {
             AbilityKind.Heal => new DirectHeal(Amount, Variance),
             AbilityKind.Interrupt => new InterruptEffect(),
+            AbilityKind.Taunt => new TauntEffect(),
             _ => new DirectDamage(Amount, Variance, School),
         },
         ResourceCost);
