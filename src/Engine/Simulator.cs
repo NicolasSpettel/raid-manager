@@ -133,6 +133,40 @@ public static class Simulator
         ScheduleNextSwing(ctx, actor, fromTick: tick);
     }
 
+    // How many stacks of a tank debuff make the active tank hand off (the ~10s taunt-window design).
+    private const int TankSwapStackThreshold = 3;
+
+    // The proactive tank swap: when the active tank's damage-taken debuff has stacked to the danger
+    // threshold, a fresh off-tank taunts to take over so the active tank's stacks can decay. No-op with
+    // a single tank (so single-tank goldens are unaffected). Runs before the boss's buster/debuff lands.
+    private static void MaybeTankSwap(SimContext ctx, int tick)
+    {
+        Combatant? active = null;
+        foreach (Combatant c in ctx.SpawnOrder)
+        {
+            if (c.Side == Side.Raid && c.IsAlive && (active is null || c.Threat > active.Threat))
+            {
+                active = c;
+            }
+        }
+
+        if (active is null || active.Spec.Role != CombatantRole.Tank || active.TankDebuffStacks < TankSwapStackThreshold)
+        {
+            return; // no tank holding, or its stacks aren't dangerous yet
+        }
+
+        foreach (Combatant c in ctx.SpawnOrder)
+        {
+            if (c.Side == Side.Raid && c.IsAlive && c.Spec.Role == CombatantRole.Tank
+                && !ReferenceEquals(c, active) && c.TankDebuffStacks < active.TankDebuffStacks && c.TryUseTaunt(tick))
+            {
+                c.Threat = active.Threat + (active.Threat / 5) + 100; // seize aggro, same as a taunt
+                ctx.Emit(new MechanicEvent(new Tick(tick), c.Id.Value, "taunt-swap"));
+                return;
+            }
+        }
+    }
+
     // A tank grabbing aggro: if a non-tank is topping the threat table, a tank with a ready taunt
     // seizes threat so the enemy swings back onto it. Reactive — no-op when a tank already holds.
     private static void MaybeTaunt(SimContext ctx, int tick)
@@ -495,6 +529,7 @@ public static class Simulator
                 break;
 
             case MechanicArchetype.TankBuster:
+                MaybeTankSwap(ctx, tick); // swap to a fresh tank if the active one is over-stacked
                 MaybeTaunt(ctx, tick); // a tank can grab the buster off a squishy who pulled aggro
                 Combatant? tankTarget = ctx.PickEnemy(boss);
                 if (tankTarget is not null)
@@ -524,6 +559,7 @@ public static class Simulator
                 break;
 
             case MechanicArchetype.TankDebuff:
+                MaybeTankSwap(ctx, tick); // hand off before the stack climbs into the danger zone
                 MaybeTaunt(ctx, tick); // keep the stacking debuff on a tank
                 Combatant? debuffTarget = ctx.PickEnemy(boss);
                 if (debuffTarget is not null)

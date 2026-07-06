@@ -115,6 +115,24 @@ internal sealed class Combatant
         }
     }
 
+    /// <summary>Highest stack count among damage-taken debuffs on this combatant (0 if none) — the tank-swap cue.</summary>
+    public int TankDebuffStacks
+    {
+        get
+        {
+            int max = 0;
+            foreach (AuraInstance aura in _auras.Values)
+            {
+                if (aura.Def.DamageTakenBonusPctPerStack > 0 && aura.Stacks > max)
+                {
+                    max = aura.Stacks;
+                }
+            }
+
+            return max;
+        }
+    }
+
     /// <summary>Apply or refresh an aura, returning the live instance (with its current stack count).</summary>
     public AuraInstance ApplyAura(AuraDef def, int tick)
     {

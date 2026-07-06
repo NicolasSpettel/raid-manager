@@ -26,9 +26,11 @@ and **interruptible casts** too; the theme is **procedurally textured** (stone p
 mechanic (integer circle geometry) that raiders **run out of** (`HazardEvent`/`MoveEvent`) — opt-in, so the
 six existing goldens stayed byte-identical and only a new spatial fixture got one. The **stage renderer draws
 it** (void-zone circle + the dodge), and in-game a raid fights the **Sentinel** on a ranked **formation**, so
-you can watch the raid spread out of the fire. `dotnet build -warnaserror` + `dotnet test` green (87 tests).
-**Next (post-slice):** the *proactive* **tank-swap AI** (a tank taunts by reading the other tank's debuff
-stacks — the locked taunt-window design), and authored texture PNGs + a display font (the last visual polish). Plans:
+you can watch the raid spread out of the fire. Two-tank raids now **swap** on debuff stacks (a fresh
+off-tank taunts when the active tank over-stacks — the locked taunt-window design).
+`dotnet build -warnaserror` + `dotnet test` green (88 tests).
+**Next (post-slice):** trait-driven *quality* on the reactive systems (dodge/swap timing from attributes,
+like `ExecutionProfile`), and authored texture PNGs + a display font (the last visual polish). Plans:
 **[docs/m1-build-plan.md](docs/m1-build-plan.md)** · **[docs/m2-build-plan.md](docs/m2-build-plan.md)**.
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)

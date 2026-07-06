@@ -39,6 +39,34 @@ public class ThreatTests
             $"taunt should raise the tank's damage share: with={withTaunt} without={withoutTaunt}");
     }
 
+    [Fact]
+    public void TwoTanks_SwapOnDebuffStacks_SoTheBossHitsBoth()
+    {
+        AbilityDef taunt = new(new AbilityId("t.taunt"), CastTicks: 0, GcdTicks: 15, CooldownTicks: 20,
+            Priority: 0, new TauntEffect());
+
+        CombatantSpec Tank(string id) => new(
+            new CombatantId(id), CombatantKind.Raider, Side.Raid, CombatantRole.Tank, id,
+            new StatBlock(MaxHp: 200_000, AttackDamage: 8, AttackVariance: 0, SwingIntervalTicks: 8), new[] { taunt });
+
+        var boss = new CombatantSpec(
+            new CombatantId("boss:b"), CombatantKind.Boss, Side.Enemy, CombatantRole.Tank, "B",
+            new StatBlock(MaxHp: 500_000, AttackDamage: 10, AttackVariance: 0, SwingIntervalTicks: 6));
+
+        var timeline = new[]
+        {
+            new MechanicInstance("dbg.debuff", MechanicArchetype.TankDebuff, MechanicSchedule.Repeating(10, 12), Amount: 20),
+        };
+
+        SimResult result = Simulator.SimulateEncounter(new SimInput(
+            new SeededRng(1), new SimConfig(200), new RaidSetup(new[] { Tank("r:tankA"), Tank("r:tankB") }),
+            new EncounterDef("t", "T", new[] { boss }, null, timeline)));
+
+        Assert.Contains(result.Events, e => e is MechanicEvent m && m.Note == "taunt-swap");
+        Assert.True(BossDamageOn(result, "r:tankA") > 0 && BossDamageOn(result, "r:tankB") > 0,
+            "after a swap the boss should have hit both tanks");
+    }
+
     private static int TankBossShare(bool giveTaunt)
     {
         AbilityDef taunt = new(new AbilityId("test.taunt"), CastTicks: 0, GcdTicks: 15,
