@@ -48,7 +48,7 @@ public partial class Main : Control
                 if (existing is not null)
                 {
                     _guild = existing;
-                    ShowRoster();
+                    ShowHome();
                 }
             },
             onNewCareer: StartNewCareer,
@@ -123,7 +123,7 @@ public partial class Main : Control
 
         _guild = guild;
         _saves.Save(_guild);
-        ShowRoster();
+        ShowHome();
     }
 
     private GuildSave? TryLoad()
@@ -139,13 +139,14 @@ public partial class Main : Control
         }
     }
 
-    private void ShowRoster()
+    // The home hub with tab navigation (Home/Squad/Calendar/Guild/Manager).
+    private void ShowHome(string tab = "Home")
     {
-        var view = new RosterView();
+        var view = new HomeShell();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
         view.Load(_guild, _difficulty,
             onStartRaid: StartRaid, onCycleDifficulty: CycleDifficulty, onRest: Rest, onRecruit: Recruit, onSave: SaveGuild,
-            onRaider: ShowRaider);
+            onRaider: ShowRaider, onMenu: ShowWelcome, initialTab: tab);
         Swap(view);
     }
 
@@ -153,7 +154,7 @@ public partial class Main : Control
     {
         var view = new RaiderView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
-        view.Load(raider, onBack: ShowRoster);
+        view.Load(raider, onBack: () => ShowHome("Squad"));
         Swap(view);
     }
 
@@ -162,7 +163,7 @@ public partial class Main : Control
         _guild = Downtime.Rest(_guild);
         _saves.Save(_guild);
         GD.Print("the guild rested; injuries recovered a step");
-        ShowRoster();
+        ShowHome("Squad");
     }
 
     private void Recruit()
@@ -178,7 +179,7 @@ public partial class Main : Control
             GD.Print("not enough gold to recruit");
         }
 
-        ShowRoster();
+        ShowHome("Squad");
     }
 
     private void CycleDifficulty()
@@ -189,7 +190,7 @@ public partial class Main : Control
             Difficulty.Heroic => Difficulty.Mythic,
             _ => Difficulty.Normal,
         };
-        ShowRoster();
+        ShowHome("Squad");
     }
 
     private void StartRaid(EncounterDef encounter)
@@ -215,13 +216,13 @@ public partial class Main : Control
     {
         if (_lastInput is null || _lastResult is null)
         {
-            ShowRoster();
+            ShowHome("Squad");
             return;
         }
 
         var view = new StageView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
-        view.Load(_lastInput, _lastResult, onBack: ShowRoster, onSwitch: ShowLog);
+        view.Load(_lastInput, _lastResult, onBack: () => ShowHome("Squad"), onSwitch: ShowLog);
         Swap(view);
     }
 
@@ -229,13 +230,13 @@ public partial class Main : Control
     {
         if (_lastInput is null || _lastResult is null)
         {
-            ShowRoster();
+            ShowHome("Squad");
             return;
         }
 
         var view = new CombatView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
-        view.Load(_lastInput, _lastResult, onBack: ShowRoster, onSwitch: ShowStage);
+        view.Load(_lastInput, _lastResult, onBack: () => ShowHome("Squad"), onSwitch: ShowStage);
         Swap(view);
     }
 

@@ -69,9 +69,10 @@ plugs into the sim/economy). Rough priority order for when we build:
 low-prestige guild from the generated world — roster/finances/expectation/rival; `JobMarket.Take` converts
 its world roster into the playable save) are BUILT in `src/App` (`WelcomeView`, `ManagerCreationView`,
 `JobOffersView`), followed by a **contract talk** (§4: push gently/hard → they soften or pull the offer;
-Negotiation tilts it), a **guild intro** (§3 backstory + your brief), and a **raider unit page** (attributes +
-condition, opened from the roster). Still to do: richer contract levers (length/transfer budget/clauses), the
-manager screen, and wiring the world/season/calendar/planner screens (currently headless) onto the roster.
+Negotiation tilts it), a **guild intro** (§3 backstory + your brief), and the **home hub** (`HomeShell`: a nav bar with tabs —
+Home dashboard / Squad roster → raider unit page / Calendar events / Guild finances+history / Manager profile).
+Still to do: make the Calendar tab the interactive **week planner** (wiring the headless season loop into it),
+richer contract levers, the **inbox**, and the trade market.
 
 ## DECISION — blocked on the dev (see the running list at the bottom of game-design.md)
 
