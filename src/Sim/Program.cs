@@ -16,7 +16,7 @@ internal static class SimCli
             SimInput? input = Fixtures.ByName(fixture, seed);
             if (input is null)
             {
-                Console.Error.WriteLine($"unknown fixture '{fixture}' (try: dummy, trio)");
+                Console.Error.WriteLine($"unknown fixture '{fixture}' (try: dummy, trio, caster)");
                 return 1;
             }
 
@@ -28,7 +28,7 @@ internal static class SimCli
             return 0;
         }
 
-        Console.Error.WriteLine("usage: sim run <dummy|trio> --seed <N>");
+        Console.Error.WriteLine("usage: sim run <dummy|trio|caster> --seed <N>");
         return 1;
     }
 

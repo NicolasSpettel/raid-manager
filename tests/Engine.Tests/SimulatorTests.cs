@@ -27,6 +27,16 @@ public class SimulatorTests
     }
 
     [Fact]
+    public void Caster_EmitsCastEvents_AndAbilityDamage()
+    {
+        SimResult result = Simulator.SimulateEncounter(Fixtures.Caster(1));
+
+        Assert.Contains(result.Events, e => e is CastStart);
+        Assert.Contains(result.Events, e => e is CastEnd ce && ce.Result == CastResult.Done);
+        Assert.Contains(result.Events, e => e is Damage d && d.Ability is not null);
+    }
+
+    [Fact]
     public void NeitherSideDeals_OutcomeIsTimeout()
     {
         SimResult result = Fight(

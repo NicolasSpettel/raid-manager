@@ -7,13 +7,13 @@
 
 ## Project status
 
-**Phase: M1 IN PROGRESS — the vertical slice (step 1 of 10 done).** M0 foundation is complete and
-tagged `v0.0-m0`. **M1 step 1 — the N-combatant engine core — is in:** many combatants, two sides,
-a scheduled `ActionQueue`, swing-timer auto-attacks, and `Kill`/`Wipe`/`Timeout` outcomes.
-`dotnet build -warnaserror` + `dotnet test` are green (14 tests); the Godot `App` replays the Sim's
-**byte-identical** stream (`hash=ac330b5fa219abde`). The plan is
-**[docs/m1-build-plan.md](docs/m1-build-plan.md)** — next is step 2 (abilities/casts + the `Content`
-registry).
+**Phase: M1 IN PROGRESS — the vertical slice (step 2 of 10 done).** M0 foundation is complete and
+tagged `v0.0-m0`. The engine now runs the **N-combatant model** (two sides, scheduled `ActionQueue`,
+swing timers, `Kill`/`Wipe`/`Timeout`) **and a data-driven cast system** (cast time / GCD / cooldown /
+AI-priority selection), fed by authored **`Content` ability rows** with drift-tested generated
+tooltips. `dotnet build -warnaserror` + `dotnet test` green (23 tests); the Godot `App` still replays
+the Sim's **byte-identical** stream (`hash=ac330b5fa219abde`). Plan:
+**[docs/m1-build-plan.md](docs/m1-build-plan.md)** — next is step 3 (roles, healing & resources).
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)
 → [docs/BLUEPRINT.md](docs/BLUEPRINT.md) §4 (repo) & §10 (conventions) → [docs/engine-spec.md](docs/engine-spec.md)
@@ -116,12 +116,13 @@ M0 foundation built and green. Each module gets one line: what it owns, what it 
 
 | Module | Owns (M0 state) | Must not know about |
 |---|---|---|
-| `src/Engine` | Deterministic sim core: `SeededRng` (PCG-XSH-RR), `Tick`/`TimeModel`, the combatant model (`CombatantSpec`/`Combatant`/`StatBlock`, sides/kinds/roles), scheduled `ActionQueue`, `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` (dummy, trio) | Content · Game · App · Godot — references nothing in the solution |
-| `src/Content` | Registries/templates (namespace anchor only in M0) | Game · App · Godot |
+| `src/Engine` | Deterministic sim core: `SeededRng` (PCG-XSH-RR), `Tick`/`TimeModel`, the combatant model (`CombatantSpec`/`Combatant`/`StatBlock`, sides/kinds/roles), scheduled `ActionQueue`, abilities & casts (`AbilityDef`/`AbilityEffect` + GCD/cooldown/priority runtime), `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` (dummy, trio, caster) | Content · Game · App · Godot — references nothing in the solution |
+| `src/Content` | Ability registry: authored `AbilityRow`s (numbers + effect archetype + aiPriority + tooltip template) projected to engine `AbilityDef` via a factory; generated tooltips (`Tooltips`) | Game · App · Godot |
 | `src/Game` | Guild/roster/economy/saves/day-loop (namespace anchor only in M0) | App · Godot |
 | `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |
 | `src/App` | Godot 4.7 C# shell: `Main` scene runs the same Engine, shows log+hash. **The only Godot-referencing project.** | — |
-| `tests/Engine.Tests` | Golden (seed 1 = `bcdf32113982c369` + full-stream snapshot) + determinism guards | — |
+| `tests/Engine.Tests` | Golden (dummy/trio/caster hashes + full-stream snapshot) + determinism + outcome/cast behavioral coverage | — |
+| `tests/Content.Tests` | Registry completeness + tooltip drift + content→engine integration | — |
 | `tests/Architecture.Tests` | NetArchTest boundary rules — second net over the ProjectReference walls | — |
 
 **Quality gates** (root: `Directory.Build.props`, `.editorconfig`, `BannedSymbols.txt`): nullable,

@@ -14,6 +14,7 @@ public class GoldenTests
     // If either changes unexpectedly, it is a determinism bug — do NOT blindly re-bless.
     private const string DummySeed1Hash = "ac330b5fa219abde";
     private const string TrioSeed1Hash = "64d40873d7747ca7";
+    private const string CasterSeed1Hash = "46075b526d3c8ba4";
 
     // Joined with an explicit '\n' (never a source multi-line literal) so the expected value can
     // never depend on this file's on-disk line endings.
@@ -57,6 +58,14 @@ public class GoldenTests
     {
         SimResult result = Simulator.SimulateEncounter(Fixtures.Trio(1));
         Assert.Equal(TrioSeed1Hash, result.Hash());
+        Assert.Equal(EncounterOutcome.Kill, result.Outcome);
+    }
+
+    [Fact]
+    public void Caster_Seed1_MatchesBlessedHash()
+    {
+        SimResult result = Simulator.SimulateEncounter(Fixtures.Caster(1));
+        Assert.Equal(CasterSeed1Hash, result.Hash());
         Assert.Equal(EncounterOutcome.Kill, result.Outcome);
     }
 }

@@ -1,13 +1,20 @@
 namespace Engine;
 
-/// <summary>What a scheduled action does. Only auto-attacks in M1 step 1; casts/timeline triggers join later.</summary>
+/// <summary>What a scheduled action does.</summary>
 internal enum ActionKind
 {
+    /// <summary>A weapon auto-attack lands and reschedules itself.</summary>
     Swing,
+
+    /// <summary>A combatant chooses and begins its next ability (the DPS decision point).</summary>
+    Decide,
+
+    /// <summary>A cast-time ability finishes and applies its effect.</summary>
+    CastComplete,
 }
 
-/// <summary>A future action owned by a combatant.</summary>
-internal readonly record struct ScheduledAction(ActionKind Kind, CombatantId Actor);
+/// <summary>A future action owned by a combatant. <see cref="Ability"/> is set only for <see cref="ActionKind.CastComplete"/>.</summary>
+internal readonly record struct ScheduledAction(ActionKind Kind, CombatantId Actor, AbilityId? Ability = null);
 
 /// <summary>
 /// Deterministic schedule of future actions, ordered by (tick, insertion seq). Same-tick actions

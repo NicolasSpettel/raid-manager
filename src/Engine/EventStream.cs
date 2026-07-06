@@ -44,9 +44,18 @@ public static class EventStream
     private static string FormatLine(CombatEvent e) => e switch
     {
         EncounterStart s => $"START t={s.Tick} encounter={s.EncounterId}",
-        Damage d => $"DMG   t={d.Tick} src={d.Source} dst={d.Target} amount={d.Amount.ToString(CultureInfo.InvariantCulture)}",
+        CastStart c => $"CAST  t={c.Tick} src={c.Source} ability={c.Ability} dur={Int(c.DurationTicks)} dst={c.Target}",
+        CastEnd c => $"CEND  t={c.Tick} src={c.Source} ability={c.Ability} result={c.Result}",
+        Damage d => FormatDamage(d),
         Death d => $"DEATH t={d.Tick} victim={d.Victim}",
         EncounterEnd x => $"END   t={x.Tick} outcome={x.Outcome}",
         _ => throw new NotSupportedException($"Unknown event type: {e.GetType().Name}"),
     };
+
+    // The ability token appears only for ability damage, so weapon auto-attack lines are unchanged.
+    private static string FormatDamage(Damage d) => d.Ability is { } ability
+        ? $"DMG   t={d.Tick} src={d.Source} dst={d.Target} ability={ability} amount={Int(d.Amount)}"
+        : $"DMG   t={d.Tick} src={d.Source} dst={d.Target} amount={Int(d.Amount)}";
+
+    private static string Int(int value) => value.ToString(CultureInfo.InvariantCulture);
 }

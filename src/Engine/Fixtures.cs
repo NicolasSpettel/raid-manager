@@ -48,11 +48,43 @@ public static class Fixtures
             new EncounterDef("warden", "The Warden", new[] { boss }));
     }
 
+    /// <summary>
+    /// One ranged caster versus a target dummy — exercises the cast/GCD/cooldown/priority system with
+    /// an inline instant + an inline cast-time ability (built directly as engine <see cref="AbilityDef"/>s;
+    /// the authored-in-Content version lives in Content's integration tests).
+    /// </summary>
+    public static SimInput Caster(ulong seed)
+    {
+        var zap = new AbilityDef(
+            new AbilityId("fx.zap"), CastTicks: 0, GcdTicks: 15, CooldownTicks: 80, Priority: 90,
+            new DirectDamage(Amount: 45, Variance: 0, DamageSchool.Magic));
+
+        var bolt = new AbilityDef(
+            new AbilityId("fx.bolt"), CastTicks: 20, GcdTicks: 15, CooldownTicks: 0, Priority: 50,
+            new DirectDamage(Amount: 30, Variance: 10, DamageSchool.Magic));
+
+        var caster = new CombatantSpec(
+            new CombatantId("r:caster"), CombatantKind.Raider, Side.Raid, CombatantRole.Ranged, "Caster",
+            new StatBlock(MaxHp: 500, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0),
+            new[] { zap, bolt });
+
+        var dummy = new CombatantSpec(
+            new CombatantId("boss:dummy"), CombatantKind.Boss, Side.Enemy, CombatantRole.Tank, "Target Dummy",
+            new StatBlock(MaxHp: 300, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0));
+
+        return new SimInput(
+            new SeededRng(seed),
+            SimConfig.Default,
+            new RaidSetup(new[] { caster }),
+            new EncounterDef("caster-dummy", "Caster Dummy", new[] { dummy }));
+    }
+
     /// <summary>Resolve a fixture by name for the Sim CLI. Returns null for an unknown name.</summary>
     public static SimInput? ByName(string name, ulong seed) => name switch
     {
         "dummy" => Dummy(seed),
         "trio" => Trio(seed),
+        "caster" => Caster(seed),
         _ => null,
     };
 
