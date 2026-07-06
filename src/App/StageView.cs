@@ -10,7 +10,8 @@ namespace App;
 /// The 2D tactical stage (M2, BLUEPRINT §8 / ADR-0005): draws the fight as tokens on a board — side
 /// colour, size by kind, filled by live HP, dark when dead, with a telegraph flash when a mechanic
 /// fires. A PURE consumer of the same precomputed event stream as the log view, on the same playback
-/// clock — it never drives the sim. v0 layout is computed from role; engine positions come in M2 step 2.
+/// clock — it never drives the sim. Non-spatial fights use a role-based layout; spatial fights (M2
+/// step 2) fold real engine positions, animate the dodge (`MoveEvent`), and draw the void zone (`HazardEvent`).
 /// </summary>
 public partial class StageView : Control
 {
@@ -38,6 +39,14 @@ public partial class StageView : Control
     private string? _mechanicNote;
     private int _mechanicTick = int.MinValue;
 
+    // Spatial mode (M2 step 2): real engine positions folded from the stream, plus live hazards.
+    private bool _spatial;
+    private readonly Dictionary<string, Vector2> _spawnPos = new();
+    private readonly Dictionary<string, Vector2> _pos = new();
+    private readonly List<(Vector2 Center, float Radius, string Id)> _hazards = new();
+    private Vector2 _worldCenter;
+    private Vector2 _worldHalf = Vector2.One;
+
     public void Load(SimInput input, SimResult result, Action onBack, Action onSwitch)
     {
         _result = result;
@@ -49,6 +58,13 @@ public partial class StageView : Control
         {
             _combatants.Add(spec);
             _maxHp[spec.Id.Value] = spec.Stats.MaxHp;
+            _spawnPos[spec.Id.Value] = new Vector2(spec.SpawnPosition.X, spec.SpawnPosition.Y);
+        }
+
+        _spatial = input.Raid.Raiders.Any(r => r.SpawnPosition != Engine.Position.Origin);
+        if (_spatial)
+        {
+            ComputeWorldBounds(result);
         }
 
         ComputeLayout();
@@ -93,14 +109,33 @@ public partial class StageView : Control
             DrawRect(board, new Color(0.78f, 0.20f, 0.15f, 0.16f)); // telegraph flash
         }
 
+        if (_spatial)
+        {
+            foreach ((Vector2 center, float radius, string _) in _hazards)
+            {
+                Vector2 sc = WorldToScreen(center, board);
+                float sr = radius * WorldScale(board);
+                DrawCircle(sc, sr, new Color(0.85f, 0.35f, 0.10f, 0.22f));            // the void zone fill
+                DrawArc(sc, sr, 0f, Mathf.Tau, 48, new Color(0.95f, 0.45f, 0.15f, 0.9f), 2.5f, true); // its edge
+            }
+        }
+
         foreach (CombatantSpec c in _combatants)
         {
-            if (!_layout.TryGetValue(c.Id.Value, out Vector2 frac))
+            Vector2 pos;
+            if (_spatial && _pos.TryGetValue(c.Id.Value, out Vector2 world))
+            {
+                pos = WorldToScreen(world, board);
+            }
+            else if (_layout.TryGetValue(c.Id.Value, out Vector2 frac))
+            {
+                pos = new Vector2(board.Position.X + (frac.X * board.Size.X), board.Position.Y + (frac.Y * board.Size.Y));
+            }
+            else
             {
                 continue;
             }
 
-            var pos = new Vector2(board.Position.X + (frac.X * board.Size.X), board.Position.Y + (frac.Y * board.Size.Y));
             float radius = c.Kind == CombatantKind.Boss ? 46f : 22f;
             int hp = _hp.GetValueOrDefault(c.Id.Value);
             int max = _maxHp.GetValueOrDefault(c.Id.Value, 1);
@@ -151,6 +186,12 @@ public partial class StageView : Control
             _hp[id] = max;
         }
 
+        foreach ((string id, Vector2 sp) in _spawnPos)
+        {
+            _pos[id] = sp;
+        }
+
+        _hazards.Clear();
         _mechanicNote = null;
         _mechanicTick = int.MinValue;
 
@@ -172,6 +213,16 @@ public partial class StageView : Control
                 case Death dth when _hp.ContainsKey(dth.Victim.Value):
                     _hp[dth.Victim.Value] = 0;
                     break;
+                case MoveEvent mv when _pos.ContainsKey(mv.Who.Value):
+                    _pos[mv.Who.Value] = new Vector2(mv.To.X, mv.To.Y);
+                    break;
+                case HazardEvent hz when hz.State == HazardState.Spawn:
+                    _hazards.Add((new Vector2(hz.At.X, hz.At.Y), hz.Radius, hz.Id));
+                    break;
+                case HazardEvent hz when hz.State == HazardState.Expire:
+                    Vector2 gone = new(hz.At.X, hz.At.Y);
+                    _hazards.RemoveAll(h => h.Id == hz.Id && h.Center == gone);
+                    break;
                 case MechanicEvent m:
                     _mechanicNote = m.Note;
                     _mechanicTick = e.Tick.Value;
@@ -179,6 +230,55 @@ public partial class StageView : Control
             }
         }
     }
+
+    // Fit all spawn positions, hazard footprints, and move targets into a stable world box (computed once,
+    // so the view doesn't jitter as tokens move). Rendering uses float; only the sim is integer/deterministic.
+    private void ComputeWorldBounds(SimResult result)
+    {
+        float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+
+        void Include(float x, float y)
+        {
+            minX = Math.Min(minX, x);
+            minY = Math.Min(minY, y);
+            maxX = Math.Max(maxX, x);
+            maxY = Math.Max(maxY, y);
+        }
+
+        foreach (Vector2 p in _spawnPos.Values)
+        {
+            Include(p.X, p.Y);
+        }
+
+        foreach (CombatEvent e in result.Events)
+        {
+            switch (e)
+            {
+                case HazardEvent h:
+                    Include(h.At.X - h.Radius, h.At.Y - h.Radius);
+                    Include(h.At.X + h.Radius, h.At.Y + h.Radius);
+                    break;
+                case MoveEvent m:
+                    Include(m.To.X, m.To.Y);
+                    break;
+            }
+        }
+
+        if (minX > maxX)
+        {
+            (minX, minY, maxX, maxY) = (-1000f, -1000f, 1000f, 1000f); // no spatial data — a safe box
+        }
+
+        const float pad = 1200f; // a token's worth of breathing room
+        _worldCenter = new Vector2((minX + maxX) / 2f, (minY + maxY) / 2f);
+        _worldHalf = new Vector2(Math.Max(1f, ((maxX - minX) / 2f) + pad), Math.Max(1f, ((maxY - minY) / 2f) + pad));
+    }
+
+    private float WorldScale(Rect2 board) =>
+        Math.Min(board.Size.X / (_worldHalf.X * 2f), board.Size.Y / (_worldHalf.Y * 2f));
+
+    private Vector2 WorldToScreen(Vector2 world, Rect2 board) =>
+        board.Position + (board.Size / 2f) + ((world - _worldCenter) * WorldScale(board));
 
     private void BuildControls()
     {
