@@ -154,7 +154,7 @@ internal static class SimCli
         }
 
         Console.WriteLine("\narchetype spread:");
-        foreach (IGrouping<string, Raider> grp in all.GroupBy(r => r.ArchetypeId).OrderByDescending(g => g.Count()))
+        foreach (IGrouping<string?, RaiderRecord> grp in all.GroupBy(r => r.ArchetypeId).OrderByDescending(g => g.Count()))
         {
             Console.WriteLine($"   {grp.Key,-20} {grp.Count(),5}  ({grp.Count() * 100 / all.Count}%)");
         }

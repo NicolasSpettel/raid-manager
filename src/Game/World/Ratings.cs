@@ -27,29 +27,30 @@ public static class Ratings
         };
 
     /// <summary>Half-stars (2–10 = 1.0★–5.0★) for one role, capped by the raider's hidden potential in it.</summary>
-    public static int HalfStars(Raider raider, CombatantRole role)
+    public static int HalfStars(RaiderRecord raider, CombatantRole role)
     {
         string[] keys = RoleKeyAttributes[role];
         int sum = 0;
         foreach (string key in keys)
         {
-            sum += raider.Attributes.Of(key);
+            sum += raider.Attributes?.Of(key) ?? 10;
         }
 
         int avgX10 = (sum * 10) / keys.Length;                 // mean attribute ×10 (integer math)
         int half = 2 + (((avgX10 - 50) * 8) / (180 - 50));     // map mean [5..18] → half-stars [2..10]
 
-        if (NaturalRole(raider.Vocation.ClassId) == role)
+        string classId = raider.Vocation?.ClassId ?? raider.ClassId;
+        if (NaturalRole(classId) == role)
         {
             half += 1; // a raider is sharper in their own class's role
         }
 
-        int cap = PotentialCap(raider.Vocation.PotentialByRole.TryGetValue(role, out int p) ? p : 0);
-        return Math.Clamp(half, 2, Math.Min(10, cap));
+        int potential = raider.Vocation is { } v && v.PotentialByRole.TryGetValue(role, out int p) ? p : 100;
+        return Math.Clamp(half, 2, Math.Min(10, PotentialCap(potential)));
     }
 
     /// <summary>The raider's strongest role and its half-stars — their headline rating.</summary>
-    public static (CombatantRole Role, int HalfStars) Best(Raider raider)
+    public static (CombatantRole Role, int HalfStars) Best(RaiderRecord raider)
     {
         CombatantRole bestRole = CombatantRole.Melee;
         int bestHalf = 0;

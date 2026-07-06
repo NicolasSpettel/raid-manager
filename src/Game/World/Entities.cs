@@ -31,36 +31,23 @@ public sealed record AttributeVector(IReadOnlyDictionary<string, int> Values)
 /// <summary>The high-mutation-rate condition component (GDD §8, FM two-axis + morale). Baseline at world-gen; the living world moves it.</summary>
 public sealed record Condition(int Morale, int Freshness, int Sharpness);
 
-/// <summary>
-/// A character as a composition of components (entities §2), not a fat record. Baseline slice: identity,
-/// vocation, attributes, condition, membership + the generating archetype (provenance). Contract and the
-/// event-sourced career ledger are their own components, added next — composition makes that cheap.
-/// </summary>
-public sealed record Raider(
-    RaiderId Id,
-    Identity Identity,
-    Vocation Vocation,
-    AttributeVector Attributes,
-    Condition Condition,
-    string ArchetypeId,
-    GuildId? Membership);
-
 /// <summary>A guild: identity, region, prestige tier, and its roster (raiders referenced by id).</summary>
 public sealed record Guild(GuildId Id, string Name, string Region, PrestigeTier Tier, IReadOnlyList<RaiderId> Roster);
 
 /// <summary>
-/// A generated world: the deterministic baseline of guilds + raiders + free agents for a seed. Age derives
-/// from <see cref="CurrentSeason"/> vs each raider's birth-season, so aging is just the clock advancing.
+/// A generated world: the deterministic baseline of guilds + raiders + free agents for a seed. Raiders are
+/// the unified <see cref="RaiderRecord"/> (composition model, entities §2). Age derives from
+/// <see cref="CurrentSeason"/> vs each raider's birth-season, so aging is just the clock advancing.
 /// </summary>
 public sealed record World(
     ulong Seed,
     int CurrentSeason,
     IReadOnlyList<Guild> Guilds,
-    IReadOnlyDictionary<RaiderId, Raider> Raiders,
+    IReadOnlyDictionary<RaiderId, RaiderRecord> Raiders,
     IReadOnlyList<RaiderId> FreeAgents)
 {
-    public Raider Get(RaiderId id) => Raiders[id];
+    public RaiderRecord Get(RaiderId id) => Raiders[id];
 
     /// <summary>Age in years, derived — never stored (entities §3.3).</summary>
-    public int AgeOf(Raider raider) => CurrentSeason - raider.Identity.BirthSeason;
+    public int AgeOf(RaiderRecord raider) => CurrentSeason - (raider.Identity?.BirthSeason ?? CurrentSeason);
 }

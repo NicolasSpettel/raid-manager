@@ -32,7 +32,7 @@ public static class WorldGen
         config ??= WorldConfig.Default;
 
         var guilds = new List<Guild>(config.GuildCount);
-        var raiders = new Dictionary<RaiderId, Raider>();
+        var raiders = new Dictionary<RaiderId, RaiderRecord>();
 
         for (int g = 0; g < config.GuildCount; g++)
         {
@@ -83,7 +83,7 @@ public static class WorldGen
     }
 
     // ── SlotFill (entities §3): archetype → latents → attributes → vocation → identity ──────────────────
-    private static Raider GenerateRaider(
+    private static RaiderRecord GenerateRaider(
         SeededRng rng, RaiderId id, NamePool pool, PrestigeTier tier, CombatantRole role, int season, GuildId? membership)
     {
         ArchetypeDef archetype = PickArchetype(rng, tier);
@@ -92,13 +92,17 @@ public static class WorldGen
 
         AttributeVector attributes = ProjectAttributes(rng, latents, age);
         string classId = PickClass(rng, role);
-        IReadOnlyDictionary<CombatantRole, int> potential = PotentialByRole(latents.Talent, role);
+        var vocation = new Vocation(classId, PotentialByRole(latents.Talent, role));
 
         string name = $"{pool.First[rng.NextInt(pool.First.Count)]} {pool.Surnames[rng.NextInt(pool.Surnames.Count)]}";
         var identity = new Identity(name, pool.Region, season - age, rng.NextUInt());
         var condition = new Condition(Morale: 60 + rng.NextInt(0, 25), Freshness: 100, Sharpness: 55 + rng.NextInt(0, 25));
 
-        return new Raider(id, identity, new Vocation(classId, potential), attributes, condition, archetype.Id, membership);
+        return new RaiderRecord(
+            id.Value, name, classId,
+            Equipped: null, InjuryRaidsLeft: 0,
+            Attributes: attributes, Condition: condition,
+            Identity: identity, Vocation: vocation, ArchetypeId: archetype.Id, Membership: membership);
     }
 
     // LatentDraw (§3.2): roll each latent from the archetype's mean ± spread.

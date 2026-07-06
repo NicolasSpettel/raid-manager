@@ -23,6 +23,13 @@ public sealed record GuildInfo(string Name, int Reputation, string? BoardExpecta
 /// A persistent roster member. Distinct from the engine's combat <c>CombatantSpec</c>: this is the
 /// career entity (identity + class + progression); it is projected into a combatant when a raid runs.
 /// </summary>
+/// <summary>
+/// A raider — the single entity type for both the living world and the player's guild (entities §2, the
+/// composition model). Flat <see cref="Name"/>/<see cref="ClassId"/> are the always-present convenience keys;
+/// the richer components (<see cref="Identity"/>, <see cref="Vocation"/>, <see cref="ArchetypeId"/>,
+/// <see cref="Membership"/>) are set for world-generated raiders and carried when one joins your guild.
+/// <see cref="Equipped"/> + <see cref="InjuryRaidsLeft"/> are the career/gear state the player accrues.
+/// </summary>
 public sealed record RaiderRecord(
     string Id,
     string Name,
@@ -30,7 +37,11 @@ public sealed record RaiderRecord(
     IReadOnlyList<string>? Equipped = null,
     int InjuryRaidsLeft = 0,
     AttributeVector? Attributes = null,
-    Condition? Condition = null);
+    Condition? Condition = null,
+    Identity? Identity = null,
+    Vocation? Vocation = null,
+    string? ArchetypeId = null,
+    GuildId? Membership = null);
 
 /// <summary>Guild finances (M1: gold only).</summary>
 public sealed record Economy(int Gold);

@@ -45,7 +45,7 @@ public class WorldGenTests
         foreach (Guild guild in world.Guilds)
         {
             var roles = guild.Roster
-                .Select(id => Classes.Registry.Get(world.Get(id).Vocation.ClassId).Role)
+                .Select(id => Classes.Registry.Get(world.Get(id).ClassId).Role)
                 .ToList();
 
             Assert.True(roles.Count(r => r == CombatantRole.Tank) >= 2, $"{guild.Id.Value} needs at least two tanks");
@@ -88,7 +88,7 @@ public class WorldGenTests
             Assert.InRange(age, 16, 33); // football-style band (GDD §8)
             if (age >= 30)
             {
-                Assert.True(r.Attributes.Of("mechanics") < 18, "a 30+ raider shouldn't keep elite twitch");
+                Assert.True(r.Attributes!.Of("mechanics") < 18, "a 30+ raider shouldn't keep elite twitch");
             }
         });
     }

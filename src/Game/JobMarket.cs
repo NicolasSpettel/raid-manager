@@ -44,12 +44,10 @@ public static class JobMarket
         ArgumentNullException.ThrowIfNull(world);
         Guild guild = world.Guilds.First(g => g.Id == guildId);
 
+        // World raiders are already the unified RaiderRecord — they join your guild as-is, just kitted with empty gear.
         var roster = guild.Roster
             .Select(world.Get)
-            .Select(r => new RaiderRecord(
-                r.Id.Value, r.Identity.Name, r.Vocation.ClassId,
-                Equipped: new List<string>(), InjuryRaidsLeft: 0,
-                Attributes: r.Attributes, Condition: r.Condition))
+            .Select(r => r with { Equipped = new List<string>() })
             .ToList();
 
         return new GuildSave(

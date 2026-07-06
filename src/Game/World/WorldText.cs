@@ -52,16 +52,16 @@ public static class WorldText
         return hash.ToString("x16", CultureInfo.InvariantCulture);
     }
 
-    private static string RaiderLine(World world, Raider r)
+    private static string RaiderLine(World world, RaiderRecord r)
     {
         (CombatantRole role, int half) = Ratings.Best(r);
         var sb = new StringBuilder();
         sb.Append(
             CultureInfo.InvariantCulture,
-            $"  R {r.Id.Value} name={r.Identity.Name} age={world.AgeOf(r)} class={r.Vocation.ClassId} arch={r.ArchetypeId} best={role}:{half}");
+            $"  R {r.Id} name={r.Name} age={world.AgeOf(r)} class={r.ClassId} arch={r.ArchetypeId} best={role}:{half}");
         foreach (AttributeDef a in Attributes.Registry.All)
         {
-            sb.Append(' ').Append(a.Id).Append('=').Append(r.Attributes.Of(a.Id).ToString(CultureInfo.InvariantCulture));
+            sb.Append(' ').Append(a.Id).Append('=').Append((r.Attributes?.Of(a.Id) ?? 10).ToString(CultureInfo.InvariantCulture));
         }
 
         sb.Append('\n');
