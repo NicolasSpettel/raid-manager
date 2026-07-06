@@ -78,10 +78,13 @@ deterministic roster from the class registry (the timestamp is passed in — Gam
 per the determinism guard). A frozen `save-v1.json` fixture round-trips through the pipeline in CI. Reload
 restores state; corrupt/versionless blobs raise `SaveException`, never crash. Green.
 
-### Step 8 — Roster & gear screens (Godot)
-Design-system primitives first (`Frame`, `Panel`, `List`, `StatBar`, `Tooltip`), one `Theme`, a
-Component Gallery scene; then the roster + gear screens bound to `GameState` signals (ADR-0002).
-**Exit:** screens render from the save aggregate; no per-screen frame reinvention (ui-design-system).
+### Step 8 — Theme + roster screen (Godot) — first cut
+`AppTheme` = one **carved-stone** `Theme` (stone panels, beveled stone-slab buttons, engraved bars)
+applied app-wide from the coordinator; the roster + combat screens are framed with it and render from the
+save aggregate. Procedural `StyleBoxFlat` for now — the enrichment pass swaps in **texture-based
+`StyleBoxTexture`** (parchment / iron / marble), a display/serif font, ornament, plus the gear screen and
+a Component Gallery. Chosen baseline: carved stone; north-star references are Witcher 3 + Dark-and-Darker
+(gritty, textured, worn).
 
 ### Step 9 — Combat-log playback (Godot) ✅ done
 The `App` runs the real engine once, then **replays** the precomputed stream with a playback clock

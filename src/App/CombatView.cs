@@ -109,8 +109,10 @@ public partial class CombatView : Control
         main.SizeFlagsVertical = SizeFlags.ExpandFill;
         main.AddThemeConstantOverride("separation", 12);
 
+        var rosterPanel = new PanelContainer();
+        rosterPanel.CustomMinimumSize = new Vector2(320, 0);
         var roster = new VBoxContainer();
-        roster.CustomMinimumSize = new Vector2(300, 0);
+        roster.AddThemeConstantOverride("separation", 4);
         foreach (CombatantSpec spec in _combatants)
         {
             roster.AddChild(new Label { Text = $"{spec.Name}  ({spec.Role})" });
@@ -126,12 +128,15 @@ public partial class CombatView : Control
             roster.AddChild(bar);
         }
 
-        main.AddChild(roster);
+        rosterPanel.AddChild(roster);
+        main.AddChild(rosterPanel);
 
+        var logPanel = new PanelContainer();
+        logPanel.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        logPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
         _log = new RichTextLabel { ScrollActive = true, ScrollFollowing = true };
-        _log.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        _log.SizeFlagsVertical = SizeFlags.ExpandFill;
-        main.AddChild(_log);
+        logPanel.AddChild(_log);
+        main.AddChild(logPanel);
 
         root.AddChild(main);
     }
