@@ -122,6 +122,56 @@ public static class Fixtures
             new EncounterDef("warden-raid", "The Warden", new[] { boss }));
     }
 
+    /// <summary>
+    /// A full mechanics fight: a 4-raider raid versus a two-phase boss whose timeline runs spread
+    /// damage, tank busters, an extra spread in the frenzy phase (HP &lt; 50%), and a soft enrage.
+    /// Exercises the whole generic mechanic runtime — and proves a boss is authored as data.
+    /// </summary>
+    public static SimInput Warden(ulong seed)
+    {
+        var mend = new AbilityDef(
+            new AbilityId("heal.mend"), CastTicks: 8, GcdTicks: 7, CooldownTicks: 0, Priority: 50,
+            new DirectHeal(Amount: 110, Variance: 20), ResourceCost: 100);
+
+        var raiders = new List<CombatantSpec>
+        {
+            new(new CombatantId("r:tank"), CombatantKind.Raider, Side.Raid, CombatantRole.Tank, "Tank",
+                new StatBlock(MaxHp: 900, AttackDamage: 5, AttackVariance: 2, SwingIntervalTicks: 8)),
+            new(new CombatantId("r:healer"), CombatantKind.Raider, Side.Raid, CombatantRole.Healer, "Healer",
+                new StatBlock(MaxHp: 400, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0,
+                    MaxResource: 1200, ResourceRegenPerTick: 4),
+                new[] { mend }),
+            new(new CombatantId("r:dps1"), CombatantKind.Raider, Side.Raid, CombatantRole.Melee, "Brawler",
+                new StatBlock(MaxHp: 400, AttackDamage: 18, AttackVariance: 6, SwingIntervalTicks: 4)),
+            new(new CombatantId("r:dps2"), CombatantKind.Raider, Side.Raid, CombatantRole.Melee, "Rogueish",
+                new StatBlock(MaxHp: 400, AttackDamage: 18, AttackVariance: 6, SwingIntervalTicks: 4)),
+        };
+
+        var boss = new CombatantSpec(
+            new CombatantId("boss:main"), CombatantKind.Boss, Side.Enemy, CombatantRole.Tank, "The Warden",
+            new StatBlock(MaxHp: 1200, AttackDamage: 25, AttackVariance: 10, SwingIntervalTicks: 8));
+
+        var phases = new List<PhaseDef>
+        {
+            new(0, "Opening"),
+            new(1, "Frenzy", HpBelowPct: 50),
+        };
+
+        var timeline = new List<MechanicInstance>
+        {
+            new("warden.spread", MechanicArchetype.SpreadDamage, MechanicSchedule.Repeating(40, 40), Amount: 25),
+            new("warden.buster", MechanicArchetype.TankBuster, MechanicSchedule.Repeating(30, 30), Amount: 80),
+            new("warden.frenzy_spread", MechanicArchetype.SpreadDamage, MechanicSchedule.Repeating(10, 25), Amount: 20, Phase: 1),
+            new("warden.enrage", MechanicArchetype.Enrage, MechanicSchedule.Once(400), Amount: 50),
+        };
+
+        return new SimInput(
+            new SeededRng(seed),
+            SimConfig.Default,
+            new RaidSetup(raiders),
+            new EncounterDef("warden", "The Warden", new[] { boss }, phases, timeline));
+    }
+
     /// <summary>Resolve a fixture by name for the Sim CLI. Returns null for an unknown name.</summary>
     public static SimInput? ByName(string name, ulong seed) => name switch
     {
@@ -129,6 +179,7 @@ public static class Fixtures
         "trio" => Trio(seed),
         "caster" => Caster(seed),
         "raid" => Raid(seed),
+        "warden" => Warden(seed),
         _ => null,
     };
 

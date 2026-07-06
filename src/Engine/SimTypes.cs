@@ -16,10 +16,16 @@ public sealed record SimConfig(int MaxTicks)
 public sealed record RaidSetup(IReadOnlyList<CombatantSpec> Raiders);
 
 /// <summary>
-/// The enemy content. In M1 step 1 this is just id/name + the enemy spawns; phases, timeline, and
-/// mechanic archetypes arrive at step 4 (engine-spec §8).
+/// The enemy content: the spawns, the ordered <see cref="Phases"/>, and the <see cref="Timeline"/> of
+/// mechanic instances the generic runtime interprets (engine-spec §8). Phases/timeline are null for a
+/// plain target-dummy encounter.
 /// </summary>
-public sealed record EncounterDef(string Id, string Name, IReadOnlyList<CombatantSpec> Enemies);
+public sealed record EncounterDef(
+    string Id,
+    string Name,
+    IReadOnlyList<CombatantSpec> Enemies,
+    IReadOnlyList<PhaseDef>? Phases = null,
+    IReadOnlyList<MechanicInstance>? Timeline = null);
 
 /// <summary>The engine's result: the event stream plus provenance for versioned, golden replay.</summary>
 public sealed record SimResult(

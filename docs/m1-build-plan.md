@@ -49,11 +49,14 @@ ability + one instant. Registry completeness + **drift test** (tooltip number ==
 clock. `executionProfile(raider)` v0 (reaction delay, mechanic-failure chance) from a working
 attribute set. **Exit:** a healer keeps a tank alive; a sloppy raider visibly underperforms; golden-tested.
 
-### Step 4 — Encounter model + mechanic archetypes
-`EncounterDef` as one Content row (scene, enemies, phases, timeline, enrage, tuning) + the generic
-mechanic runtime with the **3 M1 archetypes**: `tankSwapDebuff`, `spreadDamage`, `interruptibleCast`.
-Encounter has **2 phases**. **Exit:** the boss runs its dance; **encounter #2 = one new file** (proven
-by adding a throwaway second row in a test).
+### Step 4 — Encounter model + mechanic archetypes ✅ done
+`EncounterDef` with enemies, ordered **phases** (tick/HP-below triggers), and a **timeline** of mechanic
+instances, interpreted by **one generic runtime**. **M1 v0 archetypes — `spreadDamage`, `tankBuster`,
+`enrage`** — chosen because they're fully executable with the current engine; `tankSwapDebuff` and
+`interruptibleCast` need auras / threat / raid interrupts and join once those subsystems land. Two-phase
+boss (Warden, HP&lt;50% → Frenzy, phase-gated mechanic) + a second authored boss (Sentinel) prove
+**encounter #2 = one new row** ([Content/Encounters](../src/Content/Encounters/Encounters.cs)). Golden +
+behavioral tests green.
 
 ### Step 5 — Positions (fixed-point 2D)
 Arena scenes, `move` events, telegraph geometry (circle/cone/ring, integer math) so `spreadDamage`

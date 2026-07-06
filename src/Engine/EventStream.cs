@@ -44,6 +44,8 @@ public static class EventStream
     private static string FormatLine(CombatEvent e) => e switch
     {
         EncounterStart s => $"START t={s.Tick} encounter={s.EncounterId}",
+        PhaseChange p => $"PHASE t={p.Tick} phase={Int(p.Phase)} name={p.Name}",
+        MechanicEvent m => $"MECH  t={m.Tick} mechanic={m.Mechanic} note={m.Note}",
         CastStart c => $"CAST  t={c.Tick} src={c.Source} ability={c.Ability} dur={Int(c.DurationTicks)} dst={c.Target}",
         CastEnd c => $"CEND  t={c.Tick} src={c.Source} ability={c.Ability} result={c.Result}",
         Damage d => FormatDamage(d),

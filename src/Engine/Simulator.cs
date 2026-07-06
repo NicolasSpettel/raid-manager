@@ -25,6 +25,8 @@ public static class Simulator
         SpawnSide(ctx, input.Encounter.Enemies);
 
         ctx.Emit(new EncounterStart(Tick.Zero, input.Encounter.Id));
+        ctx.SetEncounter(input.Encounter.Phases, input.Encounter.Timeline);
+        ScheduleMechanics(ctx, input.Config.MaxTicks);
 
         foreach (Combatant c in ctx.SpawnOrder)
         {
@@ -59,6 +61,7 @@ public static class Simulator
 
             ctx.Queue.TryDequeue(out ScheduledAction action, out int tick);
             Dispatch(ctx, action, tick);
+            MaybeAdvancePhase(ctx, tick);
 
             if (!ctx.AnyAlive(Side.Enemy))
             {
@@ -87,6 +90,9 @@ public static class Simulator
             case ActionKind.CastComplete:
                 ResolveCastComplete(ctx, action.Actor, action.Ability, tick);
                 break;
+            case ActionKind.Mechanic:
+                ResolveMechanic(ctx, action.MechanicIndex, tick);
+                break;
         }
     }
 
@@ -105,7 +111,7 @@ public static class Simulator
         }
 
         StatBlock stats = actor.Spec.Stats;
-        DealDamage(ctx, actor, target, stats.AttackDamage + Roll(ctx, stats.AttackVariance), ability: null, tick);
+        DealDamage(ctx, actor, target, Scale(actor, stats.AttackDamage + Roll(ctx, stats.AttackVariance)), ability: null, tick);
         ScheduleNextSwing(ctx, actor, fromTick: tick);
     }
 
@@ -219,7 +225,7 @@ public static class Simulator
         switch (ability.Effect)
         {
             case DirectDamage dd:
-                DealDamage(ctx, source, target, dd.Amount + Roll(ctx, dd.Variance), ability.Id, tick);
+                DealDamage(ctx, source, target, Scale(source, dd.Amount + Roll(ctx, dd.Variance)), ability.Id, tick);
                 break;
             case DirectHeal dh:
                 ApplyHeal(ctx, source, target, dh, ability.Id, tick);
@@ -298,6 +304,111 @@ public static class Simulator
     }
 
     private static int Roll(SimContext ctx, int variance) => variance > 0 ? ctx.Rng.NextInt(variance) : 0;
+
+    private static int Scale(Combatant source, int amount) => amount * source.DamageDealtMultPct / 100;
+
+    private static void ScheduleMechanics(SimContext ctx, int maxTicks)
+    {
+        for (int i = 0; i < ctx.Timeline.Count; i++)
+        {
+            foreach (int t in FiringTicks(ctx.Timeline[i].Schedule, maxTicks))
+            {
+                ctx.Queue.Schedule(t, new ScheduledAction(ActionKind.Mechanic, MechanicIndex: i));
+            }
+        }
+    }
+
+    private static IEnumerable<int> FiringTicks(MechanicSchedule schedule, int maxTicks)
+    {
+        if (schedule.AtTick is { } at)
+        {
+            if (at <= maxTicks)
+            {
+                yield return at;
+            }
+
+            yield break;
+        }
+
+        if (schedule.EveryTicks is { } every && every > 0)
+        {
+            int limit = schedule.Count ?? int.MaxValue;
+            int fired = 0;
+            for (int t = schedule.StartTick; t <= maxTicks && fired < limit; t += every)
+            {
+                yield return t;
+                fired++;
+            }
+        }
+    }
+
+    // One generic runtime interprets every mechanic archetype — adding a boss is data, not code.
+    private static void ResolveMechanic(SimContext ctx, int index, int tick)
+    {
+        if (index < 0 || index >= ctx.Timeline.Count)
+        {
+            return;
+        }
+
+        MechanicInstance mechanic = ctx.Timeline[index];
+        if (mechanic.Phase is { } phase && phase != ctx.CurrentPhase)
+        {
+            return; // gated to a phase we're not in
+        }
+
+        Combatant? boss = ctx.Boss;
+        if (boss is null || !boss.IsAlive)
+        {
+            return;
+        }
+
+        switch (mechanic.Archetype)
+        {
+            case MechanicArchetype.SpreadDamage:
+                ctx.Emit(new MechanicEvent(new Tick(tick), mechanic.Id, "spread"));
+                foreach (Combatant r in ctx.SpawnOrder)
+                {
+                    if (r.Side == Side.Raid && r.IsAlive)
+                    {
+                        DealDamage(ctx, boss, r, Scale(boss, mechanic.Amount), new AbilityId(mechanic.Id), tick);
+                    }
+                }
+
+                break;
+
+            case MechanicArchetype.TankBuster:
+                Combatant? tankTarget = ctx.PickEnemy(boss);
+                if (tankTarget is not null)
+                {
+                    ctx.Emit(new MechanicEvent(new Tick(tick), mechanic.Id, "buster"));
+                    DealDamage(ctx, boss, tankTarget, Scale(boss, mechanic.Amount), new AbilityId(mechanic.Id), tick);
+                }
+
+                break;
+
+            case MechanicArchetype.Enrage:
+                boss.DamageDealtMultPct += mechanic.Amount;
+                ctx.Emit(new MechanicEvent(new Tick(tick), mechanic.Id, "enrage"));
+                break;
+        }
+    }
+
+    private static void MaybeAdvancePhase(SimContext ctx, int tick)
+    {
+        while (ctx.CurrentPhase + 1 < ctx.Phases.Count)
+        {
+            PhaseDef next = ctx.Phases[ctx.CurrentPhase + 1];
+            bool byTick = next.AtTick is { } at && tick >= at;
+            bool byHp = next.HpBelowPct is { } pct && ctx.Boss is { } boss && boss.Hp * 100 <= pct * boss.MaxHp;
+            if (!byTick && !byHp)
+            {
+                break;
+            }
+
+            ctx.CurrentPhase++;
+            ctx.Emit(new PhaseChange(new Tick(tick), ctx.CurrentPhase, next.Name));
+        }
+    }
 
     private static void ScheduleDecideAfterAction(SimContext ctx, Combatant actor) =>
         ScheduleDecide(ctx, actor, actor.GcdReadyAt + actor.ReactionTicks);

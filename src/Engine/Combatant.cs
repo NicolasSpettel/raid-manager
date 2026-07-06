@@ -85,6 +85,9 @@ internal sealed class Combatant
 
     public bool IsAlive => Hp > 0;
 
+    /// <summary>Percent multiplier on damage this combatant deals (100 = normal). Raised by Enrage.</summary>
+    public int DamageDealtMultPct { get; set; } = 100;
+
     /// <summary>Current spendable resource (mana). Regenerated lazily at decision points.</summary>
     public int Resource { get; set; }
 

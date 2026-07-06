@@ -11,10 +11,20 @@ internal enum ActionKind
 
     /// <summary>A cast-time ability finishes and applies its effect.</summary>
     CastComplete,
+
+    /// <summary>A boss mechanic on the encounter timeline fires.</summary>
+    Mechanic,
 }
 
-/// <summary>A future action owned by a combatant. <see cref="Ability"/> is set only for <see cref="ActionKind.CastComplete"/>.</summary>
-internal readonly record struct ScheduledAction(ActionKind Kind, CombatantId Actor, AbilityId? Ability = null);
+/// <summary>
+/// A future action. <see cref="Ability"/> is set only for <see cref="ActionKind.CastComplete"/>;
+/// <see cref="MechanicIndex"/> only for <see cref="ActionKind.Mechanic"/> (index into the timeline).
+/// </summary>
+internal readonly record struct ScheduledAction(
+    ActionKind Kind,
+    CombatantId Actor = default,
+    AbilityId? Ability = null,
+    int MechanicIndex = -1);
 
 /// <summary>
 /// Deterministic schedule of future actions, ordered by (tick, insertion seq). Same-tick actions

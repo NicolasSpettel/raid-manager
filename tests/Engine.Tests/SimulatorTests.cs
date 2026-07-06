@@ -72,6 +72,60 @@ public class SimulatorTests
     }
 
     [Fact]
+    public void Warden_RunsMechanicsAndPhases_AndWins()
+    {
+        SimResult result = Simulator.SimulateEncounter(Fixtures.Warden(1));
+
+        Assert.Equal(EncounterOutcome.Kill, result.Outcome);
+        Assert.Contains(result.Events, e => e is PhaseChange pc && pc.Name == "Frenzy");
+        Assert.Contains(result.Events, e => e is MechanicEvent m && m.Note == "spread");
+        Assert.Contains(result.Events, e => e is MechanicEvent m && m.Note == "buster");
+    }
+
+    [Fact]
+    public void SpreadDamage_HitsEveryRaider()
+    {
+        var raiders = new[] { InertRaider("r:1"), InertRaider("r:2"), InertRaider("r:3") };
+        var boss = new CombatantSpec(
+            new CombatantId("boss:s"), CombatantKind.Boss, Side.Enemy, CombatantRole.Tank, "S",
+            new StatBlock(MaxHp: 100_000, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0));
+        var timeline = new[]
+        {
+            new MechanicInstance("m.spread", MechanicArchetype.SpreadDamage, MechanicSchedule.Once(10), Amount: 15),
+        };
+
+        SimResult result = Simulator.SimulateEncounter(new SimInput(
+            new SeededRng(1), new SimConfig(50), new RaidSetup(raiders),
+            new EncounterDef("t", "T", new[] { boss }, Phases: null, Timeline: timeline)));
+
+        foreach (string id in new[] { "r:1", "r:2", "r:3" })
+        {
+            Assert.Contains(result.Events, e => e is Damage d && d.Target.Value == id && d.Ability?.Value == "m.spread");
+        }
+    }
+
+    [Fact]
+    public void Enrage_DoublesBossDamage()
+    {
+        var tank = InertRaider("r:t", maxHp: 1_000_000);
+        var boss = new CombatantSpec(
+            new CombatantId("boss:e"), CombatantKind.Boss, Side.Enemy, CombatantRole.Tank, "E",
+            new StatBlock(MaxHp: 1_000_000, AttackDamage: 10, AttackVariance: 0, SwingIntervalTicks: 10));
+        var timeline = new[]
+        {
+            new MechanicInstance("m.enrage", MechanicArchetype.Enrage, MechanicSchedule.Once(25), Amount: 100),
+        };
+
+        SimResult result = Simulator.SimulateEncounter(new SimInput(
+            new SeededRng(1), new SimConfig(60), new RaidSetup(new[] { tank }),
+            new EncounterDef("t", "T", new[] { boss }, Phases: null, Timeline: timeline)));
+
+        var bossHits = result.Events.OfType<Damage>().Where(d => d.Source.Value == "boss:e").ToList();
+        Assert.Equal(10, bossHits.First(d => d.Tick.Value < 25).Amount);
+        Assert.Equal(20, bossHits.First(d => d.Tick.Value > 25).Amount); // +100% after enrage
+    }
+
+    [Fact]
     public void NeitherSideDeals_OutcomeIsTimeout()
     {
         SimResult result = Fight(
@@ -120,4 +174,12 @@ public class SimulatorTests
         CombatantRole.Melee,
         id,
         new StatBlock(maxHp, damage, AttackVariance: 0, SwingIntervalTicks: swing));
+
+    private static CombatantSpec InertRaider(string id, int maxHp = 400) => new(
+        new CombatantId(id),
+        CombatantKind.Raider,
+        Side.Raid,
+        CombatantRole.Melee,
+        id,
+        new StatBlock(maxHp, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0));
 }

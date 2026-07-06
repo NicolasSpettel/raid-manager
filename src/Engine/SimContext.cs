@@ -21,6 +21,22 @@ internal sealed class SimContext
         Queue = new ActionQueue();
     }
 
+    /// <summary>The primary boss (first enemy spawned) — the reference for HP-based phase triggers.</summary>
+    public Combatant? Boss { get; private set; }
+
+    /// <summary>Current encounter phase (0 = opener).</summary>
+    public int CurrentPhase { get; set; }
+
+    public IReadOnlyList<PhaseDef> Phases { get; private set; } = System.Array.Empty<PhaseDef>();
+
+    public IReadOnlyList<MechanicInstance> Timeline { get; private set; } = System.Array.Empty<MechanicInstance>();
+
+    public void SetEncounter(IReadOnlyList<PhaseDef>? phases, IReadOnlyList<MechanicInstance>? timeline)
+    {
+        Phases = phases ?? System.Array.Empty<PhaseDef>();
+        Timeline = timeline ?? System.Array.Empty<MechanicInstance>();
+    }
+
     public SeededRng Rng { get; }
 
     public SimConfig Config { get; }
@@ -37,6 +53,10 @@ internal sealed class SimContext
     {
         _byId[c.Id] = c;
         _spawnOrder.Add(c);
+        if (Boss is null && c.Side == Side.Enemy)
+        {
+            Boss = c;
+        }
     }
 
     public Combatant? Get(CombatantId id) => _byId.TryGetValue(id, out Combatant? c) ? c : null;

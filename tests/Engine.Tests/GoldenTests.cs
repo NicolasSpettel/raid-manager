@@ -16,6 +16,7 @@ public class GoldenTests
     private const string TrioSeed1Hash = "64d40873d7747ca7";
     private const string CasterSeed1Hash = "46075b526d3c8ba4";
     private const string RaidSeed1Hash = "5a9672081a761158";
+    private const string WardenSeed1Hash = "e95afd3602b8207c";
 
     // Joined with an explicit '\n' (never a source multi-line literal) so the expected value can
     // never depend on this file's on-disk line endings.
@@ -75,6 +76,14 @@ public class GoldenTests
     {
         SimResult result = Simulator.SimulateEncounter(Fixtures.Raid(1));
         Assert.Equal(RaidSeed1Hash, result.Hash());
+        Assert.Equal(EncounterOutcome.Kill, result.Outcome);
+    }
+
+    [Fact]
+    public void Warden_Seed1_MatchesBlessedHash()
+    {
+        SimResult result = Simulator.SimulateEncounter(Fixtures.Warden(1));
+        Assert.Equal(WardenSeed1Hash, result.Hash());
         Assert.Equal(EncounterOutcome.Kill, result.Outcome);
     }
 }

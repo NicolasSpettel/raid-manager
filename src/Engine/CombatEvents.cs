@@ -31,6 +31,12 @@ public abstract record CombatEvent(Tick Tick);
 /// <summary>The encounter began.</summary>
 public sealed record EncounterStart(Tick Tick, string EncounterId) : CombatEvent(Tick);
 
+/// <summary>The encounter advanced to a new phase.</summary>
+public sealed record PhaseChange(Tick Tick, int Phase, string Name) : CombatEvent(Tick);
+
+/// <summary>A boss mechanic fired. <paramref name="Note"/> is a short label (e.g. "spread", "buster").</summary>
+public sealed record MechanicEvent(Tick Tick, string Mechanic, string Note) : CombatEvent(Tick);
+
 /// <summary><paramref name="Source"/> began casting <paramref name="Ability"/> at <paramref name="Target"/>.</summary>
 public sealed record CastStart(Tick Tick, CombatantId Source, AbilityId Ability, int DurationTicks, CombatantId Target)
     : CombatEvent(Tick);
