@@ -7,14 +7,15 @@
 
 ## Project status
 
-**Phase: M1 IN PROGRESS — the vertical slice (step 4 of 10 done).** M0 foundation is complete and
-tagged `v0.0-m0`. The engine runs the **N-combatant model**, a **data-driven cast system**, **roles /
-healing / resources / execution**, and now the **encounter model**: ordered phases (tick/HP triggers)
-and a mechanic timeline (`spreadDamage`, `tankBuster`, `enrage`) run by **one generic runtime**, so a new
-boss is one data row (`Content/Encounters`; Warden + Sentinel prove it). `dotnet build -warnaserror` +
-`dotnet test` green (35 tests); the Godot `App` still replays the Sim's **byte-identical** stream
-(`hash=ac330b5fa219abde`). Plan: **[docs/m1-build-plan.md](docs/m1-build-plan.md)** — next is step 5
-(positions / fixed-point 2D), then step 6 (the 4 classes — **needs the dev's class picks**).
+**Phase: M1 IN PROGRESS — combat slice is content-complete (steps 1–4 + 6 done; positions deferred).**
+M0 foundation is tagged `v0.0-m0`. The engine + content pipeline now run a full **data-driven fight**:
+**4 authored classes** (Guardian/Cleric/Blademaster/Pyromancer — working names) built via the
+`createRaider` factory, versus **authored bosses** with phases + mechanics — a deterministic Kill,
+headless (`sim run classraid`). `dotnet build -warnaserror` + `dotnet test` green (38 tests); the Godot
+`App` still replays the byte-identical dummy stream (`hash=ac330b5fa219abde`). Positions (step 5) are
+deferred to the combat renderer that will consume them. Plan:
+**[docs/m1-build-plan.md](docs/m1-build-plan.md)** — remaining: save/load (7), the Godot roster / gear /
+combat-playback UI (8–9), wire the raid night (10).
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)
 → [docs/BLUEPRINT.md](docs/BLUEPRINT.md) §4 (repo) & §10 (conventions) → [docs/engine-spec.md](docs/engine-spec.md)
@@ -118,7 +119,7 @@ M0 foundation built and green. Each module gets one line: what it owns, what it 
 | Module | Owns (M0 state) | Must not know about |
 |---|---|---|
 | `src/Engine` | Deterministic sim core: `SeededRng`, `Tick`/`TimeModel`, combatant model, scheduled `ActionQueue`, abilities & casts (`DirectDamage`/`DirectHeal` + GCD/cooldown/priority/resource), role-aware targeting, `ExecutionProfile` (reaction delay), encounter model (`EncounterDef` phases + mechanic timeline; `MechanicArchetype` generic runtime), `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` | Content · Game · App · Godot — references nothing in the solution |
-| `src/Content` | Ability registry (`AbilityRow` → engine `AbilityDef`, generated `Tooltips`) and encounter catalog (`Encounters`: Warden, Sentinel — authored phases + mechanic timelines) | Game · App · Godot |
+| `src/Content` | Ability registry (`AbilityRow` → `AbilityDef`, generated `Tooltips`), class roster (`Classes` + `createRaider` factory, kits into the ability registry), encounter catalog (`Encounters`: Warden, Sentinel — phases + mechanic timelines), `ContentFixtures` (the class raid) | Game · App · Godot |
 | `src/Game` | Guild/roster/economy/saves/day-loop (namespace anchor only in M0) | App · Godot |
 | `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |
 | `src/App` | Godot 4.7 C# shell: `Main` scene runs the same Engine, shows log+hash. **The only Godot-referencing project.** | — |

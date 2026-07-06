@@ -1,4 +1,5 @@
 using System.Globalization;
+using Content;
 using Engine;
 
 // Sim — the headless harness. The M1 verb is `run <fixture> --seed <N>` (fixtures: dummy, trio):
@@ -13,10 +14,10 @@ internal static class SimCli
         if (args is ["run", var fixture, ..])
         {
             ulong seed = ParseSeed(args);
-            SimInput? input = Fixtures.ByName(fixture, seed);
+            SimInput? input = Fixtures.ByName(fixture, seed) ?? ContentFixtures.ByName(fixture, seed);
             if (input is null)
             {
-                Console.Error.WriteLine($"unknown fixture '{fixture}' (try: dummy, trio, caster)");
+                Console.Error.WriteLine($"unknown fixture '{fixture}' (try: dummy, trio, caster, raid, warden, classraid)");
                 return 1;
             }
 

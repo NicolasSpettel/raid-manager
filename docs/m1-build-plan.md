@@ -58,13 +58,18 @@ boss (Warden, HP&lt;50% → Frenzy, phase-gated mechanic) + a second authored bo
 **encounter #2 = one new row** ([Content/Encounters](../src/Content/Encounters/Encounters.cs)). Golden +
 behavioral tests green.
 
-### Step 5 — Positions (fixed-point 2D)
+### Step 5 — Positions (fixed-point 2D) — deferred (reordered after the renderer)
 Arena scenes, `move` events, telegraph geometry (circle/cone/ring, integer math) so `spreadDamage`
-and forced movement are real. **Exit:** positions in the stream; geometry checks golden-tested.
+and forced movement are real. **Deferred:** `spreadDamage` is raid-wide in v0; positions land with the
+Godot stage/telegraphs (step 9+) that actually consume geometry — build the floor when the feature
+needs it (BLUEPRINT §2 "no over-abstraction"). **Exit:** positions in the stream; geometry golden-tested.
 
-### Step 6 — The 4 classes / 1 spec each *(needs the class decision)*
-Author the 4 classes as Content rows (kits, resources, mobility toolkit). No new engine code — pure
-data through the step 2–5 runtimes. **Exit:** a 10-raider raid of real classes clears a target dummy.
+### Step 6 — The 4 classes ✅ done
+Guardian (tank) / Cleric (healer) / Blademaster (melee) / Pyromancer (caster), authored as `ClassDef`
+rows (role, base stats, ability-id kit) + the `createRaider` factory; kits reference the ability
+registry. **No engine code per class** — pure data through the step 2–4 runtimes. A 4-class raid clears
+a passive dummy using every kit (the Cleric emergently smites when nobody's hurt) and beats the authored
+Warden (`sim run classraid`). Working names — renameable. *(10-raider scale + spec depth come later.)*
 
 ### Step 7 — Save/load + migration registry *(introduces the `src/Game` aggregate)*
 `GuildSave { version, guild, roster, … }` owned by `src/Game`; atomic save to `user://saves/`

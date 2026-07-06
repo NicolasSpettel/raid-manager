@@ -36,7 +36,7 @@ public class EncounterCatalogTests
         new CombatantSpec(new CombatantId("r:healer"), CombatantKind.Raider, Side.Raid, CombatantRole.Healer, "Healer",
             new StatBlock(MaxHp: 400, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0,
                 MaxResource: 1200, ResourceRegenPerTick: 4),
-            new[] { Abilities.Registry.Def("priest.mend") }),
+            new[] { Abilities.Registry.Def("cleric.mend") }),
         new CombatantSpec(new CombatantId("r:dps"), CombatantKind.Raider, Side.Raid, CombatantRole.Melee, "DPS",
             new StatBlock(MaxHp: 400, AttackDamage: 18, AttackVariance: 6, SwingIntervalTicks: 4)),
     });

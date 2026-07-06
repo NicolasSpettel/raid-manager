@@ -13,11 +13,12 @@ public class AbilityIntegrationTests
     [Fact]
     public void AuthoredAbility_DrivesTheEngine()
     {
-        AbilityDef fireball = Abilities.Registry.Def("mage.fireball");
+        AbilityDef fireball = Abilities.Registry.Def("pyromancer.fireball");
 
         var mage = new CombatantSpec(
             new CombatantId("r:mage"), CombatantKind.Raider, Side.Raid, CombatantRole.Ranged, "Mage",
-            new StatBlock(MaxHp: 500, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0),
+            new StatBlock(MaxHp: 500, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0,
+                MaxResource: 1000, ResourceRegenPerTick: 5),
             new[] { fireball });
 
         var dummy = new CombatantSpec(
@@ -30,15 +31,15 @@ public class AbilityIntegrationTests
             new RaidSetup(new[] { mage }),
             new EncounterDef("t", "T", new[] { dummy })));
 
-        Assert.Contains(result.Events, e => e is CastStart cs && cs.Ability.Value == "mage.fireball");
-        Assert.Contains(result.Events, e => e is Damage d && d.Ability?.Value == "mage.fireball");
+        Assert.Contains(result.Events, e => e is CastStart cs && cs.Ability.Value == "pyromancer.fireball");
+        Assert.Contains(result.Events, e => e is Damage d && d.Ability?.Value == "pyromancer.fireball");
         Assert.Equal(EncounterOutcome.Kill, result.Outcome);
     }
 
     [Fact]
     public void AuthoredHeal_DrivesTheEngine()
     {
-        AbilityDef mend = Abilities.Registry.Def("priest.mend");
+        AbilityDef mend = Abilities.Registry.Def("cleric.mend");
 
         var tank = new CombatantSpec(
             new CombatantId("r:tank"), CombatantKind.Raider, Side.Raid, CombatantRole.Tank, "Tank",
@@ -60,6 +61,6 @@ public class AbilityIntegrationTests
             new RaidSetup(new[] { tank, healer }),
             new EncounterDef("t", "T", new[] { boss })));
 
-        Assert.Contains(result.Events, e => e is Heal h && h.Ability.Value == "priest.mend" && h.Amount > 0);
+        Assert.Contains(result.Events, e => e is Heal h && h.Ability.Value == "cleric.mend" && h.Amount > 0);
     }
 }
