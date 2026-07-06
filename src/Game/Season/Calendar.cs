@@ -30,15 +30,21 @@ public enum WeekStance
     GrindHard,
 }
 
-/// <summary>Turns a stance into a schedule. First-pass raid-day counts (tunable).</summary>
+/// <summary>How a week's 7 days split across raid nights and off-day activities (GDD §6). Sums to 7.</summary>
+public sealed record ActivityPlan(int RaidDays, int DungeonDays, int TrainDays, int RestDays);
+
+/// <summary>Turns a stance into a schedule (GDD §6b "plan my week"). First-pass allocations (tunable).</summary>
 public static class WeekPlan
 {
-    public static int RaidDays(WeekStance stance) => stance switch
+    public static int RaidDays(WeekStance stance) => Plan(stance).RaidDays;
+
+    public static ActivityPlan Plan(WeekStance stance) => stance switch
     {
-        WeekStance.Relax => 1,
-        WeekStance.Balanced => 2,
-        WeekStance.GrindHard => 4, // GDD §6: "Grind Hard = 4 raid days"
-        _ => 2,
+        // Relax rests and does a little catch-up; Grind Hard fills the week with raids + dungeons + training.
+        WeekStance.Relax => new ActivityPlan(RaidDays: 1, DungeonDays: 1, TrainDays: 0, RestDays: 5),
+        WeekStance.Balanced => new ActivityPlan(RaidDays: 2, DungeonDays: 2, TrainDays: 1, RestDays: 2),
+        WeekStance.GrindHard => new ActivityPlan(RaidDays: 4, DungeonDays: 2, TrainDays: 1, RestDays: 0),
+        _ => new ActivityPlan(RaidDays: 2, DungeonDays: 2, TrainDays: 1, RestDays: 2),
     };
 }
 

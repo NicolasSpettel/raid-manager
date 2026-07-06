@@ -70,25 +70,38 @@ internal static class SimCli
         GuildSave guild = Guilds.CreateStarter("Your Guild", seed, "2026-01-01T00:00:00Z");
         SeasonCalendar calendar = SeasonCalendar.Start(8);
         var ladder = Encounters.All;
-        int raidDays = WeekPlan.RaidDays(stance);
+        ActivityPlan plan = WeekPlan.Plan(stance);
         int bestBoss = -1;
 
-        Console.WriteLine($"== Season: {stance} ({raidDays} raid days/week), {difficulty}, ladder of {ladder.Count} bosses ==");
+        Console.WriteLine(
+            $"== Season: {stance} (raid {plan.RaidDays} / dungeon {plan.DungeonDays} / train {plan.TrainDays} / rest {plan.RestDays}), {difficulty} ==");
         while (!calendar.SeasonOver)
         {
-            WeekOutcome week = WeekRunner.RunWeek(guild, ladder, calendar.CurrentWeek, raidDays, Lockout.Empty, difficulty, seed);
-            guild = ConditionModel.AfterWeek(week.Guild, raidDays); // raiding drains freshness; rest recovers it (§8)
-            bestBoss = Math.Max(bestBoss, week.Report.FurthestBossIndex);
+            int week = calendar.CurrentWeek;
 
-            int downed = week.Report.Nights.Count(n => n.Outcome == "Kill");
-            string frontier = week.Report.FurthestBossIndex >= 0 ? ladder[week.Report.FurthestBossIndex].Name : "—";
+            WeekOutcome raids = WeekRunner.RunWeek(guild, ladder, week, plan.RaidDays, Lockout.Empty, difficulty, seed);
+            guild = raids.Guild;
+            bestBoss = Math.Max(bestBoss, raids.Report.FurthestBossIndex);
+
+            ActivityOutcome activities = WeeklyActivities.Run(guild, plan, seed + (ulong)(week * 31)); // dungeons + training
+            guild = activities.Guild;
+            guild = ConditionModel.AfterWeek(guild, plan.RaidDays);                                    // freshness/sharpness
+            (guild, var injuries) = Injuries.RollWeek(guild, plan.RaidDays, seed + (ulong)(week * 7));  // fatigue → injuries
+
+            int downed = raids.Report.Nights.Count(n => n.Outcome == "Kill");
+            string frontier = raids.Report.FurthestBossIndex >= 0 ? ladder[raids.Report.FurthestBossIndex].Name : "—";
             int avgFreshness = (int)guild.Roster.Average(r => (r.Condition ?? ConditionModel.Fresh).Freshness);
-            Console.WriteLine($"  week {calendar.CurrentWeek,2}: {downed} kills, furthest {frontier}, gold {guild.Economy.Gold}, freshness {avgFreshness}");
+            int avgGear = (int)guild.Roster.Average(Warband.GearPower);
+            int hurt = guild.Roster.Count(r => r.InjuryRaidsLeft > 0);
+            Console.WriteLine(
+                $"  week {week,2}: {downed} kills, furthest {frontier}, gold {guild.Economy.Gold}, " +
+                $"fresh {avgFreshness}, gear {avgGear}, +{activities.Report.GearDrops} loot/+{activities.Report.TrainingSessions} train, {hurt} hurt");
             calendar = calendar.Advance();
         }
 
         string reached = bestBoss >= 0 ? ladder[bestBoss].Name : "nothing";
-        Console.WriteLine($"\nseason over — progression: {bestBoss + 1}/{ladder.Count} bosses (reached {reached}); gold {guild.Economy.Gold}");
+        int finalGear = (int)guild.Roster.Average(Warband.GearPower);
+        Console.WriteLine($"\nseason over — progression: {bestBoss + 1}/{ladder.Count} bosses (reached {reached}); gold {guild.Economy.Gold}, avg gear {finalGear}");
         return 0;
     }
 

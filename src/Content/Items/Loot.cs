@@ -13,6 +13,8 @@ public static class Loot
         ["sentinel"] = new[] { "rusty_blade", "leather_vest", "warding_charm" },
         ["ashen_king"] = new[] { "steel_greatsword", "iron_plate", "band_of_might" },
         ["frostwarden"] = new[] { "runed_greatblade", "dragonscale_plate", "sigil_of_power", "heart_of_winter" },
+        // Dungeon catch-up gear (GDD §6): lower-tier items to gear up the bench between raids.
+        ["dungeon"] = new[] { "rusty_blade", "iron_sword", "leather_vest", "warding_charm", "band_of_might", "iron_plate" },
     };
 
     /// <summary>The item pool a given encounter can drop from (empty if none).</summary>
