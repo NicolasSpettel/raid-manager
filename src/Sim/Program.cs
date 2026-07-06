@@ -42,12 +42,53 @@ internal static class SimCli
             return RunSeason(ParseSeed(args), ParseInt(args, "--weeks", 16));
         }
 
+        if (args is ["play", ..])
+        {
+            return RunPlay(ParseSeed(args), ParseString(args, "--stance", "balanced"), ParseString(args, "--difficulty", "normal"));
+        }
+
         Console.Error.WriteLine("usage: sim run <dummy|trio|caster|raid|warden|spatial|classraid> --seed <N>");
         Console.Error.WriteLine("       sim campaign --raids <N> --seed <N> --boss <id> --difficulty <normal|heroic|mythic>");
         Console.Error.WriteLine("       sim balance --raids <N> --seed <N>   (win-rate matrix over every boss x difficulty)");
         Console.Error.WriteLine("       sim world --seed <N> --guilds <N>    (generate the living world, print distributions + hash)");
         Console.Error.WriteLine("       sim season --seed <N> --weeks <N>    (race the world through the season raid, print the leaderboard)");
+        Console.Error.WriteLine("       sim play --seed <N> --stance <relax|balanced|grind> --difficulty <normal|heroic|mythic>  (the player's weekly raid loop under lockout)");
         return 1;
+    }
+
+    // The player's season: advance the calendar week by week, raiding the ladder under a weekly lockout.
+    private static int RunPlay(ulong seed, string stanceName, string difficultyName)
+    {
+        WeekStance stance = stanceName.ToLowerInvariant() switch
+        {
+            "relax" => WeekStance.Relax,
+            "grind" or "grindhard" or "grind_hard" => WeekStance.GrindHard,
+            _ => WeekStance.Balanced,
+        };
+        Difficulty difficulty = Enum.TryParse(difficultyName, ignoreCase: true, out Difficulty d) ? d : Difficulty.Normal;
+
+        GuildSave guild = Guilds.CreateStarter("Your Guild", seed, "2026-01-01T00:00:00Z");
+        SeasonCalendar calendar = SeasonCalendar.Start(8);
+        var ladder = Encounters.All;
+        int raidDays = WeekPlan.RaidDays(stance);
+        int bestBoss = -1;
+
+        Console.WriteLine($"== Season: {stance} ({raidDays} raid days/week), {difficulty}, ladder of {ladder.Count} bosses ==");
+        while (!calendar.SeasonOver)
+        {
+            WeekOutcome week = WeekRunner.RunWeek(guild, ladder, calendar.CurrentWeek, raidDays, Lockout.Empty, difficulty, seed);
+            guild = week.Guild;
+            bestBoss = Math.Max(bestBoss, week.Report.FurthestBossIndex);
+
+            int downed = week.Report.Nights.Count(n => n.Outcome == "Kill");
+            string frontier = week.Report.FurthestBossIndex >= 0 ? ladder[week.Report.FurthestBossIndex].Name : "—";
+            Console.WriteLine($"  week {calendar.CurrentWeek,2}: {downed} kills, furthest {frontier}, gold {guild.Economy.Gold}");
+            calendar = calendar.Advance();
+        }
+
+        string reached = bestBoss >= 0 ? ladder[bestBoss].Name : "nothing";
+        Console.WriteLine($"\nseason over — progression: {bestBoss + 1}/{ladder.Count} bosses (reached {reached}); gold {guild.Economy.Gold}");
+        return 0;
     }
 
     // Race the whole generated world through the season raid and print the global leaderboard + pacing.
