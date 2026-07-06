@@ -22,6 +22,7 @@ public partial class Main : Control
     private Difficulty _difficulty = Difficulty.Normal;
     private SimInput? _lastInput;
     private SimResult? _lastResult;
+    private World? _pendingWorld; // this career's living world, generated at New Career, used for job offers
 
     public override void _Ready()
     {
@@ -50,35 +51,50 @@ public partial class Main : Control
                     ShowRoster();
                 }
             },
-            onNewCareer: ShowManagerCreation,
+            onNewCareer: StartNewCareer,
             onQuit: () => GetTree().Quit());
         Swap(view);
+    }
+
+    // New Career: generate this career's living world once, then walk manager creation.
+    private void StartNewCareer()
+    {
+        _pendingWorld = WorldGen.Generate((ulong)DateTime.UtcNow.Ticks);
+        ShowManagerCreation();
     }
 
     private void ShowManagerCreation()
     {
         var view = new ManagerCreationView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
-        view.Load(onCreate: StartNewCareer, onBack: ShowWelcome);
+        view.Load(onCreate: ShowJobOffers, onBack: ShowWelcome);
         Swap(view);
     }
 
-    // Create a fresh guild for a newly-made manager and drop into the roster (getting-a-job §4 comes later).
-    private void StartNewCareer(Manager manager)
+    // Getting the job (GDD §4): a fresh manager is offered struggling low-prestige guilds from the world.
+    private void ShowJobOffers(Manager manager)
     {
-        // The app supplies the seed + timestamp (Game never reads wall-clock — the determinism guard).
-        ulong seed = (ulong)DateTime.UtcNow.Ticks;
-        string createdAtIso = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
-        GuildSave guild = Guilds.CreateStarter("The Founders", seed, createdAtIso) with { Manager = manager };
+        World world = _pendingWorld ?? WorldGen.Generate((ulong)DateTime.UtcNow.Ticks);
+        var view = new JobOffersView();
+        view.SetAnchorsPreset(LayoutPreset.FullRect);
+        view.Load(
+            JobMarket.OffersFor(world, count: 8),
+            onTake: guildId =>
+            {
+                string createdAtIso = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+                GuildSave guild = JobMarket.Take(world, guildId, manager, createdAtIso);
 
-        if (manager.BackgroundId == "rich_sponsor") // the sponsor's perk: extra starting funds
-        {
-            guild = guild with { Economy = new Economy(guild.Economy.Gold + 3000) };
-        }
+                if (manager.BackgroundId == "rich_sponsor") // the sponsor's perk: extra starting funds
+                {
+                    guild = guild with { Economy = new Economy(guild.Economy.Gold + 3000) };
+                }
 
-        _guild = guild;
-        _saves.Save(_guild);
-        ShowRoster();
+                _guild = guild;
+                _saves.Save(_guild);
+                ShowRoster();
+            },
+            onBack: ShowManagerCreation);
+        Swap(view);
     }
 
     private GuildSave? TryLoad()

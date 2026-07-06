@@ -64,10 +64,12 @@ plugs into the sim/economy). Rough priority order for when we build:
 12. **Smaller/thin:** youth program, awards ceremony, PR/social-media layer, holidays,
     lifestyle loop, onboarding/first-session flow.
 
-**Front-end (Godot UI) — started top-down:** the **opening screen** (§1: Continue/New Career/Quit) and
-**manager creation** (§2: identity + background + 7-attribute point-buy → a persisted `Manager`) are BUILT
-in `src/App` (`WelcomeView`, `ManagerCreationView`). Next UI: getting-a-job offers (§4), then wiring the
-world/season/calendar/planner screens (all currently headless) onto the roster.
+**Front-end (Godot UI) — started top-down:** the **opening screen** (§1), **manager creation** (§2: identity
++ background + 7-attribute point-buy → a persisted `Manager`), and **getting a job** (§4: pick a real
+low-prestige guild from the generated world — roster/finances/expectation/rival; `JobMarket.Take` converts
+its world roster into the playable save) are BUILT in `src/App` (`WelcomeView`, `ManagerCreationView`,
+`JobOffersView`). Still to do: **contract negotiation** (§4 back-and-forth — salary/length/budget, accept/
+counter AI), and wiring the world/season/calendar/planner screens (currently headless) onto the roster.
 
 ## DECISION — blocked on the dev (see the running list at the bottom of game-design.md)
 
