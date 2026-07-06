@@ -71,10 +71,10 @@ its world roster into the playable save) are BUILT in `src/App` (`WelcomeView`, 
 `JobOffersView`), followed by a **contract talk** (§4: push gently/hard → they soften or pull the offer;
 Negotiation tilts it), a **guild intro** (§3 backstory + your brief), and the **home hub** (`HomeShell`: a nav bar with tabs —
 Home dashboard / Squad roster → raider unit page / Calendar events / Guild finances+history / Manager profile).
-The **Calendar tab is now the interactive week planner** — plan each day (raid/dungeon/training/rest) and
-advance the week through the real `WeekExecutor` (raids, gear, training, per-raider condition/morale/injury),
-the season week persisting. Still to do: granular 5-man-group assignment UI, new-season rollover + aging,
-richer contract levers, the **inbox**, and the trade market.
+The **Calendar is a 4-slot-per-day grid** (§6): each day has four slots you fill with guild activities, and
+you **simulate a day or a week** (`DayExecutor`: raid night under lockout, dungeon gear, training, per-raider
+condition/injury), with the day/week clock + weekly lockout persisted. Still to do: **new-season rollover +
+aging**, per-slot raider assignment (who's in the 5-man), morale on the day loop, the **inbox**, trade market.
 
 ## DECISION — blocked on the dev (see the running list at the bottom of game-design.md)
 

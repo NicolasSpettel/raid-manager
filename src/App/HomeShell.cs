@@ -33,12 +33,13 @@ public partial class HomeShell : Control
     private Action _onRecruit = null!;
     private Action _onSave = null!;
     private Action _onMenu = null!;
-    private Action<WeekSchedule> _onAdvanceWeek = null!;
+    private Action<IReadOnlyList<IReadOnlyList<ActivityType>>> _onSimulateDay = null!;
+    private Action<IReadOnlyList<IReadOnlyList<ActivityType>>> _onSimulateWeek = null!;
     private string? _lastWeekSummary;
 
     private PanelContainer _contentPanel = null!;
     private Control? _currentContent;
-    private readonly List<OptionButton> _dayPickers = new();
+    private ActivityType[][]? _slots; // this week's plan: 7 days × 4 slots
 
     public void Load(
         GuildSave guild,
@@ -50,7 +51,8 @@ public partial class HomeShell : Control
         Action onSave,
         Action<RaiderRecord> onRaider,
         Action onMenu,
-        Action<WeekSchedule> onAdvanceWeek,
+        Action<IReadOnlyList<IReadOnlyList<ActivityType>>> onSimulateDay,
+        Action<IReadOnlyList<IReadOnlyList<ActivityType>>> onSimulateWeek,
         string? lastWeekSummary,
         string initialTab)
     {
@@ -64,7 +66,8 @@ public partial class HomeShell : Control
         _onSave = onSave;
         _onRaider = onRaider;
         _onMenu = onMenu;
-        _onAdvanceWeek = onAdvanceWeek;
+        _onSimulateDay = onSimulateDay;
+        _onSimulateWeek = onSimulateWeek;
         _lastWeekSummary = lastWeekSummary;
 
         var margin = new MarginContainer();
@@ -195,8 +198,9 @@ public partial class HomeShell : Control
             return Wrap(col);
         }
 
+        int today = _guild.SeasonDay;
         SeasonSchedule calendar = SeasonSchedule.Build(seasonWeeks);
-        col.AddChild(new Label { Text = $"Week {week} of {seasonWeeks}" });
+        col.AddChild(new Label { Text = $"Week {week} of {seasonWeeks}   ·   {(Weekday)today}" });
         CalendarEvent? holiday = calendar.HolidayIn(week);
         if (holiday is not null)
         {
@@ -212,41 +216,79 @@ public partial class HomeShell : Control
             col.AddChild(summary);
         }
 
-        col.AddChild(new Control { CustomMinimumSize = new Vector2(0, 8) });
-        col.AddChild(Header("Plan the week"));
-        col.AddChild(Dim("Set each day; dungeons run a 5-man group, training develops your weakest. Then advance."));
+        col.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
+        col.AddChild(Dim("Each day has four 2-hour slots — click a slot to set the guild's activity, then simulate."));
 
-        _dayPickers.Clear();
-        ActivityType[] defaults = { ActivityType.Raid, ActivityType.Dungeon, ActivityType.Raid, ActivityType.Training, ActivityType.Raid, ActivityType.Dungeon, ActivityType.Rest };
+        _slots = DefaultWeekPlan();
         string[] dayNames = System.Enum.GetNames<Weekday>();
         for (int d = 0; d < dayNames.Length; d++)
         {
             var row = new HBoxContainer();
-            row.AddThemeConstantOverride("separation", 10);
-            row.AddChild(new Label { Text = dayNames[d], CustomMinimumSize = new Vector2(110, 0) });
+            row.AddThemeConstantOverride("separation", 5);
 
-            var picker = new OptionButton { CustomMinimumSize = new Vector2(160, 0) };
-            foreach (ActivityType activity in System.Enum.GetValues<ActivityType>())
+            var dayLabel = new Label { Text = dayNames[d][..3], CustomMinimumSize = new Vector2(60, 0) };
+            dayLabel.AddThemeColorOverride("font_color", d == today ? AppTheme.Gold : (d < today ? new Color("#6f6a60") : new Color("#cdc8bb")));
+            row.AddChild(dayLabel);
+
+            for (int s = 0; s < 4; s++)
             {
-                picker.AddItem(activity.ToString());
+                int day = d;
+                int slot = s;
+                var slotButton = new Button { Text = Abbrev(_slots[d][s]), CustomMinimumSize = new Vector2(94, 34), Disabled = d < today };
+                slotButton.Pressed += () =>
+                {
+                    _slots![day][slot] = Cycle(_slots[day][slot]);
+                    slotButton.Text = Abbrev(_slots[day][slot]);
+                };
+                row.AddChild(slotButton);
             }
 
-            picker.Selected = (int)defaults[d];
-            _dayPickers.Add(picker);
-            row.AddChild(picker);
             col.AddChild(row);
         }
 
-        col.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
-        var advance = new Button { Text = "Advance the week", CustomMinimumSize = new Vector2(220, 44) };
-        advance.Pressed += () =>
-        {
-            var perDay = _dayPickers.Select(p => (ActivityType)p.Selected).ToList();
-            _onAdvanceWeek(WeekPlanner.FromDays(_guild, perDay));
-        };
-        col.AddChild(advance);
+        col.AddChild(new Control { CustomMinimumSize = new Vector2(0, 8) });
+        var actions = new HBoxContainer();
+        actions.AddThemeConstantOverride("separation", 10);
+        var simDay = new Button { Text = "Simulate day", CustomMinimumSize = new Vector2(150, 42) };
+        simDay.Pressed += () => _onSimulateDay(_slots!);
+        var simWeek = new Button { Text = "Simulate week", CustomMinimumSize = new Vector2(150, 42) };
+        simWeek.Pressed += () => _onSimulateWeek(_slots!);
+        actions.AddChild(simDay);
+        actions.AddChild(simWeek);
+        col.AddChild(actions);
 
         return Wrap(col);
+    }
+
+    private static string Abbrev(ActivityType activity) => activity switch
+    {
+        ActivityType.Raid => "Raid",
+        ActivityType.Dungeon => "Dungeon",
+        ActivityType.Training => "Train",
+        _ => "Rest",
+    };
+
+    private static ActivityType Cycle(ActivityType activity) => activity switch
+    {
+        ActivityType.Rest => ActivityType.Raid,
+        ActivityType.Raid => ActivityType.Dungeon,
+        ActivityType.Dungeon => ActivityType.Training,
+        _ => ActivityType.Rest,
+    };
+
+    private static ActivityType[][] DefaultWeekPlan()
+    {
+        const ActivityType r = ActivityType.Raid, d = ActivityType.Dungeon, t = ActivityType.Training, x = ActivityType.Rest;
+        return new[]
+        {
+            new[] { r, r, r, x }, // Mon — raid night
+            new[] { d, t, x, x }, // Tue — dungeon + training
+            new[] { r, r, r, x }, // Wed — raid night
+            new[] { d, t, x, x }, // Thu — dungeon + training
+            new[] { r, r, r, x }, // Fri — raid night
+            new[] { d, x, x, x }, // Sat — a dungeon
+            new[] { x, x, x, x }, // Sun — rest
+        };
     }
 
     private ScrollContainer BuildGuild()

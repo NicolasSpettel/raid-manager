@@ -65,6 +65,20 @@ public static class ConditionModel
         return condition with { Freshness = freshness, Sharpness = sharpness };
     }
 
+    /// <summary>
+    /// Advance one raider's condition over a single day of <paramref name="busySlots"/> booked slots (of 4):
+    /// busy slots drain freshness, empty ones recover it (∝ Endurance); a day that raided keeps sharpness up,
+    /// an idle day lets it rust a little. Day-granular counterpart of <see cref="AfterLoad"/>. First-pass rates.
+    /// </summary>
+    public static Condition AfterDay(Condition condition, int busySlots, bool raided, int endurance)
+    {
+        int freshness = Math.Clamp(condition.Freshness - (busySlots * 3) + (3 + (endurance / 4)), 0, 100);
+        int sharpness = raided
+            ? Math.Clamp(condition.Sharpness + 4, 0, 100)
+            : Math.Clamp(condition.Sharpness - 3, 0, 100);
+        return condition with { Freshness = freshness, Sharpness = sharpness };
+    }
+
     /// <summary>Advance every raider's condition after a week of <paramref name="raidDays"/> raid days (Endurance drives recovery).</summary>
     public static GuildSave AfterWeek(GuildSave guild, int raidDays)
     {

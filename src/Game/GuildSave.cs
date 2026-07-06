@@ -20,7 +20,9 @@ public sealed record GuildSave(
     ulong WorldSeed = 0,
     int GeneratorVersion = 0,
     string? ManagerGuildId = null,
-    int SeasonWeek = 1);
+    int SeasonWeek = 1,
+    int SeasonDay = 0,                          // 0=Monday … 6=Sunday within the current week
+    IReadOnlyList<string>? DownedThisWeek = null); // weekly lockout: bosses looted since the last Monday reset
 
 /// <summary>Guild identity. <see cref="BoardExpectation"/> is the season goal you agreed at signing (GDD §4).</summary>
 public sealed record GuildInfo(string Name, int Reputation, string? BoardExpectation = null);

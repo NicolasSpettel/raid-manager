@@ -23,7 +23,8 @@ public partial class Main : Control
     private SimInput? _lastInput;
     private SimResult? _lastResult;
     private World? _pendingWorld; // this career's living world, generated at New Career, used for job offers
-    private string? _lastWeekSummary; // the just-advanced week's result, shown on the Calendar tab
+    private string? _lastWeekSummary; // the just-advanced day/week's result, shown on the Calendar tab
+    private const int SeasonWeeks = 12;
 
     public override void _Ready()
     {
@@ -159,28 +160,69 @@ public partial class Main : Control
         view.SetAnchorsPreset(LayoutPreset.FullRect);
         view.Load(_guild, _difficulty,
             onStartRaid: StartRaid, onCycleDifficulty: CycleDifficulty, onRest: Rest, onRecruit: Recruit, onSave: SaveGuild,
-            onRaider: ShowRaider, onMenu: ShowWelcome, onAdvanceWeek: AdvanceWeek, lastWeekSummary: _lastWeekSummary, initialTab: tab);
+            onRaider: ShowRaider, onMenu: ShowWelcome, onSimulateDay: SimulateDay, onSimulateWeek: SimulateWeek,
+            lastWeekSummary: _lastWeekSummary, initialTab: tab);
         Swap(view);
     }
 
-    // Run one planned week through the real season loop (GDD §5/§6): raids + activities + condition/morale/injury.
-    private void AdvanceWeek(WeekSchedule schedule)
+    // Simulate the current day of the 4-slot calendar (GDD §6), advancing the clock.
+    private void SimulateDay(IReadOnlyList<IReadOnlyList<ActivityType>> weekPlan)
     {
-        int week = _guild.SeasonWeek;
-        SeasonSchedule calendar = SeasonSchedule.Build(12);
-        ulong seed = unchecked(_guild.WorldSeed + ((ulong)week * 0x9E3779B1UL));
-        bool holidayGranted = calendar.HolidayIn(week) is not null; // grant any holiday (deny = a morale hit, later)
+        if (_guild.SeasonWeek > SeasonWeeks)
+        {
+            ShowHome("Calendar");
+            return;
+        }
 
-        WeekResult result = WeekExecutor.Run(
-            _guild, schedule, Encounters.All, week, Lockout.Empty, _difficulty, seed, calendar, holidayGranted);
-
-        _guild = result.Guild with { SeasonWeek = week + 1 };
+        int ranDay = _guild.SeasonDay;
+        (_guild, DayResult result) = StepDay(_guild, weekPlan);
         _saves.Save(_guild);
-
-        string frontier = result.FurthestBossIndex >= 0 ? Encounters.All[result.FurthestBossIndex].Name : "no boss";
         _lastWeekSummary =
-            $"Week {week}: {result.Kills} kills (reached {frontier}), +{result.GearDrops} gear, {result.TrainingSessions} trained, {result.Injured} hurt.";
+            $"{(Weekday)ranDay}: {result.Kills} kills, +{result.GearDrops} gear, {result.TrainingSessions} trained, {result.Injured} hurt.";
         ShowHome("Calendar");
+    }
+
+    // Simulate the rest of the current week, day by day.
+    private void SimulateWeek(IReadOnlyList<IReadOnlyList<ActivityType>> weekPlan)
+    {
+        if (_guild.SeasonWeek > SeasonWeeks)
+        {
+            ShowHome("Calendar");
+            return;
+        }
+
+        int startWeek = _guild.SeasonWeek;
+        int kills = 0, gear = 0, trained = 0, hurt = 0;
+        while (_guild.SeasonWeek == startWeek && _guild.SeasonWeek <= SeasonWeeks)
+        {
+            (_guild, DayResult result) = StepDay(_guild, weekPlan);
+            kills += result.Kills;
+            gear += result.GearDrops;
+            trained += result.TrainingSessions;
+            hurt += result.Injured;
+        }
+
+        _saves.Save(_guild);
+        _lastWeekSummary = $"Week {startWeek}: {kills} kills, +{gear} gear, {trained} trained, {hurt} hurt.";
+        ShowHome("Calendar");
+    }
+
+    // Run the current day and advance the day/week clock (weekly reset clears the lockout).
+    private (GuildSave Guild, DayResult Result) StepDay(GuildSave guild, IReadOnlyList<IReadOnlyList<ActivityType>> weekPlan)
+    {
+        int week = guild.SeasonWeek;
+        int day = guild.SeasonDay;
+        IReadOnlyList<string> downed = guild.DownedThisWeek ?? System.Array.Empty<string>();
+        ulong seed = unchecked(guild.WorldSeed + ((ulong)((week * 100) + day) * 0x9E3779B1UL));
+
+        DayResult result = DayExecutor.RunDay(guild, weekPlan[day], Encounters.All, week, day, downed, _difficulty, seed);
+        guild = result.Guild with { DownedThisWeek = result.DownedThisWeek };
+
+        guild = day >= 6
+            ? guild with { SeasonWeek = week + 1, SeasonDay = 0, DownedThisWeek = System.Array.Empty<string>() }
+            : guild with { SeasonDay = day + 1 };
+
+        return (guild, result);
     }
 
     private void ShowRaider(RaiderRecord raider)
