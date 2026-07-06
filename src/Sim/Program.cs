@@ -32,7 +32,7 @@ internal static class SimCli
             return RunBalance(ParseInt(args, "--raids", 6), ParseSeed(args));
         }
 
-        Console.Error.WriteLine("usage: sim run <dummy|trio|caster|raid|warden|classraid> --seed <N>");
+        Console.Error.WriteLine("usage: sim run <dummy|trio|caster|raid|warden|spatial|classraid> --seed <N>");
         Console.Error.WriteLine("       sim campaign --raids <N> --seed <N> --boss <id> --difficulty <normal|heroic|mythic>");
         Console.Error.WriteLine("       sim balance --raids <N> --seed <N>   (win-rate matrix over every boss x difficulty)");
         return 1;
@@ -43,7 +43,7 @@ internal static class SimCli
         SimInput? input = Fixtures.ByName(fixture, seed) ?? ContentFixtures.ByName(fixture, seed);
         if (input is null)
         {
-            Console.Error.WriteLine($"unknown fixture '{fixture}' (try: dummy, trio, caster, raid, warden, classraid)");
+            Console.Error.WriteLine($"unknown fixture '{fixture}' (try: dummy, trio, caster, raid, warden, spatial, classraid)");
             return 1;
         }
 
