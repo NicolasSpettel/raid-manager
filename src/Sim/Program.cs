@@ -27,8 +27,14 @@ internal static class SimCli
                 ParseString(args, "--boss", "warden"), ParseString(args, "--difficulty", "normal"));
         }
 
+        if (args is ["balance", ..])
+        {
+            return RunBalance(ParseInt(args, "--raids", 6), ParseSeed(args));
+        }
+
         Console.Error.WriteLine("usage: sim run <dummy|trio|caster|raid|warden|classraid> --seed <N>");
-        Console.Error.WriteLine("       sim campaign --raids <N> --seed <N> --boss <warden|sentinel|ashen_king> --difficulty <normal|heroic|mythic>");
+        Console.Error.WriteLine("       sim campaign --raids <N> --seed <N> --boss <id> --difficulty <normal|heroic|mythic>");
+        Console.Error.WriteLine("       sim balance --raids <N> --seed <N>   (win-rate matrix over every boss x difficulty)");
         return 1;
     }
 
@@ -73,6 +79,27 @@ internal static class SimCli
         {
             Console.WriteLine(
                 $"   {r.Name,-10} {Classes.Registry.Get(r.ClassId).Name,-12} Lv {r.Level,-2} gear {Warband.GearPower(r)}");
+        }
+
+        return 0;
+    }
+
+    // A balance matrix: a fresh guild's win rate per boss x difficulty — a quick tuning read.
+    private static int RunBalance(int raids, ulong seed)
+    {
+        Console.WriteLine($"== Balance matrix (fresh 8-raider guild, {raids} raids each, seed {seed}) ==");
+        Console.WriteLine($"{"boss",-16} {"Normal",-8} {"Heroic",-8} {"Mythic",-8}");
+
+        foreach (EncounterDef boss in Encounters.All)
+        {
+            var cells = Difficulties.All.Select(difficulty =>
+            {
+                EncounterDef encounter = Difficulties.Scale(boss, difficulty);
+                GuildSave guild = Guilds.CreateStarter("Bal", seed, "2026-01-01T00:00:00Z");
+                return $"{Campaign.Run(guild, raids, seed, encounter).Wins}/{raids}";
+            }).ToArray();
+
+            Console.WriteLine($"{boss.Name,-16} {cells[0],-8} {cells[1],-8} {cells[2],-8}");
         }
 
         return 0;
