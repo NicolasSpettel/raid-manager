@@ -47,5 +47,29 @@ public static class Abilities
             CastTicks: 0, GcdTicks: 15, CooldownTicks: 0, Amount: 15, Variance: 5, School: DamageSchool.Magic,
             Priority: 30, Tooltip: "Scorches an enemy for {amount} {school} damage.",
             ResourceCost: 30),
+
+        // Ranger (ranged physical DPS)
+        new AbilityRow(
+            Id: "ranger.aimed_shot", Name: "Aimed Shot", ClassId: "ranger", SpecId: "marksman",
+            CastTicks: 15, GcdTicks: 15, CooldownTicks: 0, Amount: 32, Variance: 10, School: DamageSchool.Physical,
+            Priority: 60, Tooltip: "A careful shot for {amount} {school} damage after a {castSeconds}s aim."),
+
+        // Warlock (caster DPS)
+        new AbilityRow(
+            Id: "warlock.shadow_bolt", Name: "Shadow Bolt", ClassId: "warlock", SpecId: "affliction",
+            CastTicks: 20, GcdTicks: 15, CooldownTicks: 0, Amount: 38, Variance: 14, School: DamageSchool.Magic,
+            Priority: 55, Tooltip: "Hurls shadow for {amount} {school} damage after a {castSeconds}s cast.",
+            ResourceCost: 50),
+        new AbilityRow(
+            Id: "warlock.drain", Name: "Drain", ClassId: "warlock", SpecId: "affliction",
+            CastTicks: 0, GcdTicks: 15, CooldownTicks: 0, Amount: 18, Variance: 6, School: DamageSchool.Magic,
+            Priority: 30, Tooltip: "Drains an enemy for {amount} {school} damage.",
+            ResourceCost: 30),
+
+        // Paladin (tank)
+        new AbilityRow(
+            Id: "paladin.consecrate", Name: "Consecrate", ClassId: "paladin", SpecId: "protection",
+            CastTicks: 0, GcdTicks: 15, CooldownTicks: 40, Amount: 24, Variance: 8, School: DamageSchool.Physical,
+            Priority: 60, Tooltip: "Scorches the ground for {amount} {school} damage. {cooldownSeconds}s cooldown."),
     });
 }

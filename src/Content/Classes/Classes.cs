@@ -31,6 +31,24 @@ public static class Classes
             MaxResource: 1000, ResourceRegenPerTick: 3),
         new[] { "pyromancer.fireball", "pyromancer.scorch" });
 
-    // Declared last so the four class properties above are initialized before the registry reads them.
-    public static ClassRegistry Registry { get; } = new(new[] { Guardian, Cleric, Blademaster, Pyromancer });
+    public static ClassDef Ranger { get; } = new(
+        "ranger", "Ranger", CombatantRole.Ranged,
+        new StatBlock(MaxHp: 440, AttackDamage: 8, AttackVariance: 3, SwingIntervalTicks: 5),
+        new[] { "ranger.aimed_shot" });
+
+    public static ClassDef Warlock { get; } = new(
+        "warlock", "Warlock", CombatantRole.Ranged,
+        new StatBlock(MaxHp: 430, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0,
+            MaxResource: 1000, ResourceRegenPerTick: 3),
+        new[] { "warlock.shadow_bolt", "warlock.drain" });
+
+    public static ClassDef Paladin { get; } = new(
+        "paladin", "Paladin", CombatantRole.Tank,
+        new StatBlock(MaxHp: 950, AttackDamage: 6, AttackVariance: 2, SwingIntervalTicks: 8),
+        new[] { "paladin.consecrate" });
+
+    // Declared last so the class properties above are initialized before the registry reads them.
+    // Order matters: the first four (one per role) seed CreateStarter's guaranteed role coverage.
+    public static ClassRegistry Registry { get; } = new(
+        new[] { Guardian, Cleric, Blademaster, Pyromancer, Ranger, Warlock, Paladin });
 }
