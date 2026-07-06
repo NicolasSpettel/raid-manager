@@ -13,7 +13,8 @@ public sealed record GuildSave(
     GuildInfo Guild,
     IReadOnlyList<RaiderRecord> Roster,
     Economy Economy,
-    IReadOnlyList<RaidSummary> History);
+    IReadOnlyList<RaidSummary> History,
+    Manager? Manager = null);
 
 /// <summary>Guild identity.</summary>
 public sealed record GuildInfo(string Name, int Reputation);

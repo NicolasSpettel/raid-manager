@@ -30,31 +30,68 @@ public partial class Main : Control
 
         string path = ProjectSettings.GlobalizePath("user://saves/guild.json");
         _saves = new SaveService(new FileStorageAdapter(path));
-        _guild = LoadOrCreateGuild();
 
-        GD.Print($"guild '{_guild.Guild.Name}' roster={_guild.Roster.Count} gold={_guild.Economy.Gold}");
-        ShowRoster();
+        ShowWelcome();
     }
 
-    private GuildSave LoadOrCreateGuild()
+    // The opening screen (GDD §1): Continue loads the saved career; New Career walks manager creation.
+    private void ShowWelcome()
     {
-        try
-        {
-            GuildSave? loaded = _saves.Load();
-            if (loaded is not null)
+        GuildSave? existing = TryLoad();
+        var view = new WelcomeView();
+        view.SetAnchorsPreset(LayoutPreset.FullRect);
+        view.Load(
+            hasSave: existing is not null,
+            onContinue: () =>
             {
-                return loaded;
-            }
-        }
-        catch (SaveException ex)
-        {
-            GD.PushWarning($"save unreadable, starting a fresh guild: {ex.Message}");
-        }
+                if (existing is not null)
+                {
+                    _guild = existing;
+                    ShowRoster();
+                }
+            },
+            onNewCareer: ShowManagerCreation,
+            onQuit: () => GetTree().Quit());
+        Swap(view);
+    }
 
+    private void ShowManagerCreation()
+    {
+        var view = new ManagerCreationView();
+        view.SetAnchorsPreset(LayoutPreset.FullRect);
+        view.Load(onCreate: StartNewCareer, onBack: ShowWelcome);
+        Swap(view);
+    }
+
+    // Create a fresh guild for a newly-made manager and drop into the roster (getting-a-job §4 comes later).
+    private void StartNewCareer(Manager manager)
+    {
         // The app supplies the seed + timestamp (Game never reads wall-clock — the determinism guard).
         ulong seed = (ulong)DateTime.UtcNow.Ticks;
         string createdAtIso = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
-        return Guilds.CreateStarter("The Founders", seed, createdAtIso);
+        GuildSave guild = Guilds.CreateStarter("The Founders", seed, createdAtIso) with { Manager = manager };
+
+        if (manager.BackgroundId == "rich_sponsor") // the sponsor's perk: extra starting funds
+        {
+            guild = guild with { Economy = new Economy(guild.Economy.Gold + 3000) };
+        }
+
+        _guild = guild;
+        _saves.Save(_guild);
+        ShowRoster();
+    }
+
+    private GuildSave? TryLoad()
+    {
+        try
+        {
+            return _saves.Load();
+        }
+        catch (SaveException ex)
+        {
+            GD.PushWarning($"save unreadable: {ex.Message}");
+            return null;
+        }
     }
 
     private void ShowRoster()

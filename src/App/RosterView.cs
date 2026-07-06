@@ -47,6 +47,23 @@ public partial class RosterView : Control
         title.AddThemeColorOverride("font_color", AppTheme.Gold);
         root.AddChild(title);
 
+        if (guild.Manager is { } manager)
+        {
+            string background = manager.BackgroundId;
+            foreach (BackgroundDef b in ManagerProfile.Backgrounds)
+            {
+                if (b.Id == manager.BackgroundId)
+                {
+                    background = b.Name;
+                    break;
+                }
+            }
+
+            var managerLabel = new Label { Text = $"Manager: {manager.Name}, age {manager.Age}   ({background})" };
+            managerLabel.AddThemeColorOverride("font_color", new Color("#9a9486"));
+            root.AddChild(managerLabel);
+        }
+
         if (guild.History.Count > 0)
         {
             root.AddChild(LastRaidBanner(guild.History[^1]));
