@@ -12,6 +12,41 @@ public static class AppTheme
 {
     public static Color Backdrop => new("#1a1a1e");
 
+    public static Color Gold => new("#c9a24b");
+
+    /// <summary>
+    /// A full-screen stone backdrop, textured procedurally with tiled Perlin noise (no art assets) —
+    /// a first move away from the flat fill toward real texture. A later pass replaces this with
+    /// authored parchment/marble/iron textures.
+    /// </summary>
+    public static Control CreateBackdrop()
+    {
+        var noise = new FastNoiseLite
+        {
+            NoiseType = FastNoiseLite.NoiseTypeEnum.Perlin,
+            Frequency = 0.015f,
+            FractalOctaves = 4,
+        };
+
+        var ramp = new Gradient();
+        ramp.SetColor(0, new Color("#101013"));
+        ramp.SetColor(1, new Color("#28282f"));
+
+        var texture = new NoiseTexture2D
+        {
+            Noise = noise,
+            Width = 512,
+            Height = 512,
+            Seamless = true,
+            ColorRamp = ramp,
+        };
+
+        var rect = new TextureRect { Texture = texture, StretchMode = TextureRect.StretchModeEnum.Tile };
+        rect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        rect.MouseFilter = Control.MouseFilterEnum.Ignore;
+        return rect;
+    }
+
     public static Theme Build()
     {
         var theme = new Theme { DefaultFontSize = 16 };

@@ -36,6 +36,7 @@ public partial class RosterView : Control
             Text = $"{guild.Guild.Name}       Gold {guild.Economy.Gold}       Reputation {guild.Guild.Reputation}",
         };
         title.AddThemeFontSizeOverride("font_size", 24);
+        title.AddThemeColorOverride("font_color", AppTheme.Gold);
         root.AddChild(title);
 
         root.AddChild(new Label { Text = $"Roster ({guild.Roster.Count})        Raids fought: {guild.History.Count}" });

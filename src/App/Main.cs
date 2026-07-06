@@ -23,11 +23,7 @@ public partial class Main : Control
     public override void _Ready()
     {
         Theme = AppTheme.Build();
-
-        var backdrop = new ColorRect { Color = AppTheme.Backdrop };
-        backdrop.SetAnchorsPreset(LayoutPreset.FullRect);
-        backdrop.MouseFilter = MouseFilterEnum.Ignore;
-        AddChild(backdrop);
+        AddChild(AppTheme.CreateBackdrop());
 
         string path = ProjectSettings.GlobalizePath("user://saves/guild.json");
         _saves = new SaveService(new FileStorageAdapter(path));
