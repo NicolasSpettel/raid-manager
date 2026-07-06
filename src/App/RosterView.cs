@@ -13,7 +13,12 @@ namespace App;
 /// </summary>
 public partial class RosterView : Control
 {
-    public void Load(GuildSave guild, Action<EncounterDef> onStartRaid, Action onSave)
+    public void Load(
+        GuildSave guild,
+        Difficulty difficulty,
+        Action<EncounterDef> onStartRaid,
+        Action onCycleDifficulty,
+        Action onSave)
     {
         ArgumentNullException.ThrowIfNull(guild);
 
@@ -68,6 +73,11 @@ public partial class RosterView : Control
 
         var buttons = new HBoxContainer();
         buttons.AddThemeConstantOverride("separation", 10);
+
+        var difficultyButton = new Button { Text = $"Difficulty: {difficulty}" };
+        difficultyButton.Pressed += () => onCycleDifficulty();
+        buttons.AddChild(difficultyButton);
+
         foreach (EncounterDef encounter in Encounters.All)
         {
             var raidButton = new Button { Text = $"Raid  —  {encounter.Name}" };

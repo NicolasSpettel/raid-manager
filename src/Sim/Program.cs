@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.Linq;
 using Content;
@@ -21,11 +22,13 @@ internal static class SimCli
 
         if (args is ["campaign", ..])
         {
-            return RunCampaign(ParseInt(args, "--raids", 5), ParseSeed(args), ParseString(args, "--boss", "warden"));
+            return RunCampaign(
+                ParseInt(args, "--raids", 5), ParseSeed(args),
+                ParseString(args, "--boss", "warden"), ParseString(args, "--difficulty", "normal"));
         }
 
         Console.Error.WriteLine("usage: sim run <dummy|trio|caster|raid|warden|classraid> --seed <N>");
-        Console.Error.WriteLine("       sim campaign --raids <N> --seed <N> --boss <warden|sentinel|ashen_king>");
+        Console.Error.WriteLine("       sim campaign --raids <N> --seed <N> --boss <warden|sentinel|ashen_king> --difficulty <normal|heroic|mythic>");
         return 1;
     }
 
@@ -46,9 +49,12 @@ internal static class SimCli
         return 0;
     }
 
-    private static int RunCampaign(int raids, ulong seed, string bossId)
+    private static int RunCampaign(int raids, ulong seed, string bossId, string difficultyName)
     {
-        EncounterDef encounter = Encounters.All.FirstOrDefault(e => e.Id == bossId) ?? Encounters.Warden;
+        EncounterDef baseEncounter = Encounters.All.FirstOrDefault(e => e.Id == bossId) ?? Encounters.Warden;
+        Difficulty difficulty = Enum.TryParse(difficultyName, ignoreCase: true, out Difficulty d) ? d : Difficulty.Normal;
+        EncounterDef encounter = Difficulties.Scale(baseEncounter, difficulty);
+
         GuildSave start = Guilds.CreateStarter("Campaign Guild", seed, "2026-01-01T00:00:00Z");
         Console.WriteLine($"== Campaign: {start.Roster.Count} raiders vs {encounter.Name}, {raids} raids, seed {seed} ==");
 

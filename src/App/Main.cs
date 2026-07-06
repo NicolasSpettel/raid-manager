@@ -19,6 +19,7 @@ public partial class Main : Control
     private SaveService _saves = null!;
     private GuildSave _guild = null!;
     private Control? _current;
+    private Difficulty _difficulty = Difficulty.Normal;
 
     public override void _Ready()
     {
@@ -58,21 +59,33 @@ public partial class Main : Control
     {
         var view = new RosterView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
-        view.Load(_guild, onStartRaid: StartRaid, onSave: SaveGuild);
+        view.Load(_guild, _difficulty, onStartRaid: StartRaid, onCycleDifficulty: CycleDifficulty, onSave: SaveGuild);
         Swap(view);
+    }
+
+    private void CycleDifficulty()
+    {
+        _difficulty = _difficulty switch
+        {
+            Difficulty.Normal => Difficulty.Heroic,
+            Difficulty.Heroic => Difficulty.Mythic,
+            _ => Difficulty.Normal,
+        };
+        ShowRoster();
     }
 
     private void StartRaid(EncounterDef encounter)
     {
+        EncounterDef scaled = Difficulties.Scale(encounter, _difficulty);
         var raid = new RaidSetup(_guild.Roster.Select(ToCombatant).ToList());
         ulong seed = (ulong)DateTime.UtcNow.Ticks; // a fresh fight each time
-        var input = new SimInput(new SeededRng(seed), SimConfig.Default, raid, encounter);
+        var input = new SimInput(new SeededRng(seed), SimConfig.Default, raid, scaled);
         SimResult result = Simulator.SimulateEncounter(input);
 
         (GuildSave updated, RaidSummary summary) = RaidResolver.Resolve(_guild, result, input.Encounter, seed);
         _guild = updated;
         _saves.Save(_guild); // auto-save the outcome
-        GD.Print($"raid {result.Outcome} vs {encounter.Name}: +{summary.GoldAwarded} gold (now {_guild.Economy.Gold}); saved");
+        GD.Print($"raid {result.Outcome} vs {scaled.Name}: +{summary.GoldAwarded} gold (now {_guild.Economy.Gold}); saved");
 
         var view = new CombatView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
