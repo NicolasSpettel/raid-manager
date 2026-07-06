@@ -23,8 +23,18 @@ csharp_style_var_elsewhere = true:silent
 # Nullable correctness is a hard error (part of determinism/robustness floor).
 dotnet_diagnostic.CS8618.severity = error
 
+# "Stream" is core domain vocabulary here — the event stream is the engine's product (BLUEPRINT §5),
+# not a System.IO.Stream. Allow the suffix so CA1711 doesn't fight the ubiquitous domain term.
+dotnet_code_quality.CA1711.allowed_suffixes = Stream
+
 [*.{csproj,props,targets,xml}]
 indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false
+
+# Test projects: method names conventionally use underscores (Method_State_Expectation),
+# and xUnit needs public test classes — don't let those conventions fail the build.
+[tests/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none   # underscores in member names
+dotnet_diagnostic.CA1515.severity = none   # "make public types internal"
