@@ -47,7 +47,21 @@ public static class Encounters
             new MechanicInstance("ashen.enrage", MechanicArchetype.Enrage, MechanicSchedule.Once(500), 50),
         });
 
-    public static IReadOnlyList<EncounterDef> All { get; } = new[] { Warden, Sentinel, AshenKing };
+    // A tier-3 wall: heavier tank debuff, more frequent DoT, and a punishing frenzy phase.
+    public static EncounterDef Frostwarden { get; } = new(
+        "frostwarden", "The Frostwarden",
+        new[] { Boss("boss:frost", "The Frostwarden", maxHp: 2800, attack: 34, swing: 8) },
+        new[] { new PhaseDef(0, "Rime"), new PhaseDef(1, "Blizzard", HpBelowPct: 35) },
+        new[]
+        {
+            new MechanicInstance("frost.debuff", MechanicArchetype.TankDebuff, MechanicSchedule.Repeating(18, 18), 14),
+            new MechanicInstance("frost.buster", MechanicArchetype.TankBuster, MechanicSchedule.Repeating(26, 26), 100),
+            new MechanicInstance("frost.dot", MechanicArchetype.RaidDot, MechanicSchedule.Repeating(30, 30), 8),
+            new MechanicInstance("frost.spread", MechanicArchetype.SpreadDamage, MechanicSchedule.Repeating(12, 18), 30, Phase: 1),
+            new MechanicInstance("frost.enrage", MechanicArchetype.Enrage, MechanicSchedule.Once(600), 40),
+        });
+
+    public static IReadOnlyList<EncounterDef> All { get; } = new[] { Warden, Sentinel, AshenKing, Frostwarden };
 
     private static CombatantSpec Boss(string id, string name, int maxHp, int attack, int swing) => new(
         new CombatantId(id), CombatantKind.Boss, Side.Enemy, CombatantRole.Tank, name,

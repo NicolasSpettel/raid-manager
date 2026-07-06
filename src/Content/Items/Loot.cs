@@ -12,6 +12,7 @@ public static class Loot
         ["warden"] = new[] { "iron_sword", "iron_plate", "warding_charm", "steel_greatsword", "band_of_might" },
         ["sentinel"] = new[] { "rusty_blade", "leather_vest", "warding_charm" },
         ["ashen_king"] = new[] { "steel_greatsword", "iron_plate", "band_of_might" },
+        ["frostwarden"] = new[] { "runed_greatblade", "dragonscale_plate", "sigil_of_power", "heart_of_winter" },
     };
 
     /// <summary>The item pool a given encounter can drop from (empty if none).</summary>
