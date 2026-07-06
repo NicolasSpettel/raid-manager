@@ -75,26 +75,55 @@ public partial class Main : Control
     private void ShowJobOffers(Manager manager)
     {
         World world = _pendingWorld ?? WorldGen.Generate((ulong)DateTime.UtcNow.Ticks);
+        _pendingWorld = world;
         var view = new JobOffersView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
         view.Load(
             JobMarket.OffersFor(world, count: 8),
-            onTake: guildId =>
-            {
-                string createdAtIso = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
-                GuildSave guild = JobMarket.Take(world, guildId, manager, createdAtIso);
-
-                if (manager.BackgroundId == "rich_sponsor") // the sponsor's perk: extra starting funds
-                {
-                    guild = guild with { Economy = new Economy(guild.Economy.Gold + 3000) };
-                }
-
-                _guild = guild;
-                _saves.Save(_guild);
-                ShowRoster();
-            },
+            onSelect: offer => ShowNegotiation(manager, offer),
             onBack: ShowManagerCreation);
         Swap(view);
+    }
+
+    // Contract talks (GDD §4): push for terms, then sign or walk.
+    private void ShowNegotiation(Manager manager, JobOffer offer)
+    {
+        var view = new NegotiationView();
+        view.SetAnchorsPreset(LayoutPreset.FullRect);
+        view.Load(
+            offer, manager, seed: (ulong)DateTime.UtcNow.Ticks,
+            onSign: state => ShowGuildIntro(manager, offer, state),
+            onWalkAway: () => ShowJobOffers(manager));
+        Swap(view);
+    }
+
+    // Meet the guild you just signed with (GDD §3): its past and your brief, then take the reins.
+    private void ShowGuildIntro(Manager manager, JobOffer offer, NegotiationState terms)
+    {
+        World world = _pendingWorld!;
+        Guild guild = world.Guilds.First(g => g.Id == offer.GuildId);
+        var view = new GuildIntroView();
+        view.SetAnchorsPreset(LayoutPreset.FullRect);
+        view.Load(
+            guild.Name, guild.Region, GuildLore.For(world, guild), terms.ExpectationText,
+            onEnter: () => EnterGuild(manager, offer, terms));
+        Swap(view);
+    }
+
+    private void EnterGuild(Manager manager, JobOffer offer, NegotiationState terms)
+    {
+        string createdAtIso = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        GuildSave guild = JobMarket.Take(_pendingWorld!, offer.GuildId, manager, createdAtIso);
+        guild = guild with { Guild = guild.Guild with { BoardExpectation = terms.ExpectationText } };
+
+        if (manager.BackgroundId == "rich_sponsor") // the sponsor's perk: extra starting funds
+        {
+            guild = guild with { Economy = new Economy(guild.Economy.Gold + 3000) };
+        }
+
+        _guild = guild;
+        _saves.Save(_guild);
+        ShowRoster();
     }
 
     private GuildSave? TryLoad()
@@ -115,7 +144,16 @@ public partial class Main : Control
         var view = new RosterView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
         view.Load(_guild, _difficulty,
-            onStartRaid: StartRaid, onCycleDifficulty: CycleDifficulty, onRest: Rest, onRecruit: Recruit, onSave: SaveGuild);
+            onStartRaid: StartRaid, onCycleDifficulty: CycleDifficulty, onRest: Rest, onRecruit: Recruit, onSave: SaveGuild,
+            onRaider: ShowRaider);
+        Swap(view);
+    }
+
+    private void ShowRaider(RaiderRecord raider)
+    {
+        var view = new RaiderView();
+        view.SetAnchorsPreset(LayoutPreset.FullRect);
+        view.Load(raider, onBack: ShowRoster);
         Swap(view);
     }
 

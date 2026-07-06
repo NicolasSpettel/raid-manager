@@ -12,7 +12,7 @@ namespace App;
 /// </summary>
 public partial class JobOffersView : Control
 {
-    public void Load(IReadOnlyList<JobOffer> offers, Action<GuildId> onTake, Action onBack)
+    public void Load(IReadOnlyList<JobOffer> offers, Action<JobOffer> onSelect, Action onBack)
     {
         ArgumentNullException.ThrowIfNull(offers);
 
@@ -53,7 +53,7 @@ public partial class JobOffersView : Control
 
         foreach (JobOffer offer in offers)
         {
-            list.AddChild(OfferCard(offer, onTake));
+            list.AddChild(OfferCard(offer, onSelect));
         }
 
         var back = new Button { Text = "< Back", CustomMinimumSize = new Vector2(120, 38) };
@@ -61,7 +61,7 @@ public partial class JobOffersView : Control
         root.AddChild(back);
     }
 
-    private static PanelContainer OfferCard(JobOffer offer, Action<GuildId> onTake)
+    private static PanelContainer OfferCard(JobOffer offer, Action<JobOffer> onSelect)
     {
         var card = new PanelContainer();
         var inner = new MarginContainer();
@@ -89,9 +89,8 @@ public partial class JobOffersView : Control
         info.AddChild(Dim($"Board expects: {offer.Expectation}"));
         info.AddChild(Dim($"Regional rival: {offer.Rival}"));
 
-        var take = new Button { Text = "Take the job", CustomMinimumSize = new Vector2(150, 40) };
-        GuildId id = offer.GuildId;
-        take.Pressed += () => onTake(id);
+        var take = new Button { Text = "Negotiate", CustomMinimumSize = new Vector2(150, 40) };
+        take.Pressed += () => onSelect(offer);
         var takeWrap = new CenterContainer();
         takeWrap.AddChild(take);
         row.AddChild(takeWrap);

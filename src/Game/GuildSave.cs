@@ -16,8 +16,8 @@ public sealed record GuildSave(
     IReadOnlyList<RaidSummary> History,
     Manager? Manager = null);
 
-/// <summary>Guild identity.</summary>
-public sealed record GuildInfo(string Name, int Reputation);
+/// <summary>Guild identity. <see cref="BoardExpectation"/> is the season goal you agreed at signing (GDD §4).</summary>
+public sealed record GuildInfo(string Name, int Reputation, string? BoardExpectation = null);
 
 /// <summary>
 /// A persistent roster member. Distinct from the engine's combat <c>CombatantSpec</c>: this is the

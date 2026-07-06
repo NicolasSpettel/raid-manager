@@ -20,7 +20,8 @@ public partial class RosterView : Control
         Action onCycleDifficulty,
         Action onRest,
         Action onRecruit,
-        Action onSave)
+        Action onSave,
+        Action<RaiderRecord> onRaider)
     {
         ArgumentNullException.ThrowIfNull(guild);
 
@@ -80,15 +81,20 @@ public partial class RosterView : Control
 
         var list = new VBoxContainer();
         list.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        list.AddThemeConstantOverride("separation", 3);
         scroll.AddChild(list);
         foreach (RaiderRecord raider in guild.Roster)
         {
             ClassDef cls = Classes.Registry.Get(raider.ClassId);
-            string injured = raider.InjuryRaidsLeft > 0 ? "       [injured]" : string.Empty;
-            list.AddChild(new Label
+            string injured = raider.InjuryRaidsLeft > 0 ? "     [injured]" : string.Empty;
+            var rowButton = new Button
             {
-                Text = $"    {raider.Name}       {cls.Name} ({cls.Role})       Gear {Warband.GearPower(raider)}{injured}",
-            });
+                Text = $"  {raider.Name}       {cls.Name} ({cls.Role})       Gear {Warband.GearPower(raider)}{injured}",
+                Alignment = HorizontalAlignment.Left,
+            };
+            RaiderRecord captured = raider;
+            rowButton.Pressed += () => onRaider(captured);
+            list.AddChild(rowButton);
         }
 
         var raidRow = new HBoxContainer();

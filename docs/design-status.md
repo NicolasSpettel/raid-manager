@@ -68,8 +68,10 @@ plugs into the sim/economy). Rough priority order for when we build:
 + background + 7-attribute point-buy → a persisted `Manager`), and **getting a job** (§4: pick a real
 low-prestige guild from the generated world — roster/finances/expectation/rival; `JobMarket.Take` converts
 its world roster into the playable save) are BUILT in `src/App` (`WelcomeView`, `ManagerCreationView`,
-`JobOffersView`). Still to do: **contract negotiation** (§4 back-and-forth — salary/length/budget, accept/
-counter AI), and wiring the world/season/calendar/planner screens (currently headless) onto the roster.
+`JobOffersView`), followed by a **contract talk** (§4: push gently/hard → they soften or pull the offer;
+Negotiation tilts it), a **guild intro** (§3 backstory + your brief), and a **raider unit page** (attributes +
+condition, opened from the roster). Still to do: richer contract levers (length/transfer budget/clauses), the
+manager screen, and wiring the world/season/calendar/planner screens (currently headless) onto the roster.
 
 ## DECISION — blocked on the dev (see the running list at the bottom of game-design.md)
 
