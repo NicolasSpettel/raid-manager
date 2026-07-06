@@ -20,6 +20,8 @@ public partial class Main : Control
     private GuildSave _guild = null!;
     private Control? _current;
     private Difficulty _difficulty = Difficulty.Normal;
+    private SimInput? _lastInput;
+    private SimResult? _lastResult;
 
     public override void _Ready()
     {
@@ -112,9 +114,37 @@ public partial class Main : Control
         _saves.Save(_guild); // auto-save the outcome
         GD.Print($"raid {result.Outcome} vs {scaled.Name}: +{summary.GoldAwarded} gold (now {_guild.Economy.Gold}); saved");
 
+        _lastInput = input;
+        _lastResult = result;
+        ShowStage();
+    }
+
+    // Two renderers, one precomputed stream — you toggle between them (the M2 floor).
+    private void ShowStage()
+    {
+        if (_lastInput is null || _lastResult is null)
+        {
+            ShowRoster();
+            return;
+        }
+
+        var view = new StageView();
+        view.SetAnchorsPreset(LayoutPreset.FullRect);
+        view.Load(_lastInput, _lastResult, onBack: ShowRoster, onSwitch: ShowLog);
+        Swap(view);
+    }
+
+    private void ShowLog()
+    {
+        if (_lastInput is null || _lastResult is null)
+        {
+            ShowRoster();
+            return;
+        }
+
         var view = new CombatView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
-        view.Load(input, result, onBack: ShowRoster);
+        view.Load(_lastInput, _lastResult, onBack: ShowRoster, onSwitch: ShowStage);
         Swap(view);
     }
 

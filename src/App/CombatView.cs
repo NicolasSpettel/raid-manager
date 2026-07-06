@@ -23,6 +23,7 @@ public partial class CombatView : Control
     private bool _playing;
     private bool _syncingSeek;
     private Action? _onBack;
+    private Action? _onSwitch;
 
     private Button _playButton = null!;
     private Button _speedButton = null!;
@@ -34,10 +35,11 @@ public partial class CombatView : Control
     private readonly Dictionary<string, int> _maxHp = new();
 
     /// <summary>Show the given fight and start playing it.</summary>
-    public void Load(SimInput input, SimResult result, Action onBack)
+    public void Load(SimInput input, SimResult result, Action onBack, Action onSwitch)
     {
         _result = result;
         _onBack = onBack;
+        _onSwitch = onSwitch;
         _lines = EventStream.Serialize(result.Events).TrimEnd('\n').Split('\n');
         _maxTick = result.Events.Count == 0 ? 0 : result.Events[^1].Tick.Value;
 
@@ -80,6 +82,9 @@ public partial class CombatView : Control
         var controls = new HBoxContainer();
         var back = new Button { Text = "< Roster" };
         back.Pressed += () => _onBack?.Invoke();
+        var switchButton = new Button { Text = "Stage view" };
+        switchButton.Pressed += () => _onSwitch?.Invoke();
+        controls.AddChild(switchButton);
         _playButton = new Button { Text = "Pause" };
         _playButton.Pressed += () => SetPlaying(!_playing);
         _speedButton = new Button { Text = "1x" };
