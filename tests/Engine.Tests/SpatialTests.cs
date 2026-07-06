@@ -29,6 +29,19 @@ public class SpatialTests
         Assert.True(rooted > 0, "a rooted raider should take the full ground damage");
     }
 
+    [Fact]
+    public void AVoidZone_Warns_ThenGoesLive_ThenClears()
+    {
+        var haz = VoidZoneFight(canAct: false).Events.OfType<HazardEvent>().ToList();
+
+        Assert.Equal(HazardState.Spawn, haz[0].State);
+        Assert.Equal(HazardState.Expire, haz[^1].State);
+
+        int spawn = haz.First(h => h.State == HazardState.Spawn).Tick.Value;
+        int active = haz.First(h => h.State == HazardState.Active).Tick.Value;
+        Assert.True(active > spawn, "the live phase must start after the warning window, giving raiders time to react");
+    }
+
     [Theory]
     [InlineData(0, 0)]
     [InlineData(1, 1)]

@@ -626,6 +626,12 @@ public static class Simulator
             return;
         }
 
+        if (!hazard.Activated)
+        {
+            hazard.Activated = true; // the warning window (spawn → first tick) is over; it's now live
+            ctx.Emit(new HazardEvent(new Tick(tick), hazard.MechanicId, hazard.Center, hazard.Radius, HazardState.Active));
+        }
+
         Combatant source = ctx.Boss ?? ctx.SpawnOrder[0];
         var castId = new AbilityId(hazard.MechanicId);
         foreach (Combatant c in ctx.SpawnOrder)

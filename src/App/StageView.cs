@@ -43,7 +43,7 @@ public partial class StageView : Control
     private bool _spatial;
     private readonly Dictionary<string, Vector2> _spawnPos = new();
     private readonly Dictionary<string, Vector2> _pos = new();
-    private readonly List<(Vector2 Center, float Radius, string Id)> _hazards = new();
+    private readonly List<(Vector2 Center, float Radius, string Id, bool Active)> _hazards = new();
     private Vector2 _worldCenter;
     private Vector2 _worldHalf = Vector2.One;
 
@@ -111,12 +111,21 @@ public partial class StageView : Control
 
         if (_spatial)
         {
-            foreach ((Vector2 center, float radius, string _) in _hazards)
+            foreach ((Vector2 center, float radius, string _, bool active) in _hazards)
             {
                 Vector2 sc = WorldToScreen(center, board);
                 float sr = radius * WorldScale(board);
-                DrawCircle(sc, sr, new Color(0.85f, 0.35f, 0.10f, 0.22f));            // the void zone fill
-                DrawArc(sc, sr, 0f, Mathf.Tau, 48, new Color(0.95f, 0.45f, 0.15f, 0.9f), 2.5f, true); // its edge
+                if (active)
+                {
+                    DrawCircle(sc, sr, new Color(0.85f, 0.35f, 0.10f, 0.28f));             // live: solid danger fill
+                    DrawArc(sc, sr, 0f, Mathf.Tau, 48, new Color(0.95f, 0.45f, 0.15f, 0.95f), 3f, true);
+                }
+                else
+                {
+                    // warning: a pulsing outline, no fill yet — "get out before it goes off"
+                    float pulse = 0.45f + (0.35f * Mathf.Sin((float)_currentTick * 0.5f));
+                    DrawArc(sc, sr, 0f, Mathf.Tau, 48, new Color(0.95f, 0.5f, 0.15f, pulse), 2f, true);
+                }
             }
         }
 
@@ -217,7 +226,16 @@ public partial class StageView : Control
                     _pos[mv.Who.Value] = new Vector2(mv.To.X, mv.To.Y);
                     break;
                 case HazardEvent hz when hz.State == HazardState.Spawn:
-                    _hazards.Add((new Vector2(hz.At.X, hz.At.Y), hz.Radius, hz.Id));
+                    _hazards.Add((new Vector2(hz.At.X, hz.At.Y), hz.Radius, hz.Id, false));
+                    break;
+                case HazardEvent hz when hz.State == HazardState.Active:
+                    Vector2 live = new(hz.At.X, hz.At.Y);
+                    int idx = _hazards.FindIndex(h => h.Id == hz.Id && h.Center == live);
+                    if (idx >= 0)
+                    {
+                        _hazards[idx] = _hazards[idx] with { Active = true };
+                    }
+
                     break;
                 case HazardEvent hz when hz.State == HazardState.Expire:
                     Vector2 gone = new(hz.At.X, hz.At.Y);

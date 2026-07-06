@@ -35,6 +35,9 @@ internal sealed class Hazard
     public int TickInterval { get; }
 
     public int ExpiresAt { get; }
+
+    /// <summary>Set once the hazard's warning window elapses and it starts dealing damage (emits Active).</summary>
+    public bool Activated { get; set; }
 }
 
 internal sealed class SimContext

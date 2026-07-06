@@ -70,10 +70,11 @@ public sealed record ResourceChange(Tick Tick, CombatantId Who, int Delta, int N
 /// <summary><paramref name="Victim"/> died.</summary>
 public sealed record Death(Tick Tick, CombatantId Victim) : CombatEvent(Tick);
 
-/// <summary>Whether a ground hazard is appearing or clearing.</summary>
+/// <summary>A ground hazard's lifecycle: it appears (telegraph warning), goes live (starts dealing damage), then clears.</summary>
 public enum HazardState
 {
     Spawn,
+    Active,
     Expire,
 }
 

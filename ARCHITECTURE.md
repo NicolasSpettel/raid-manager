@@ -24,11 +24,12 @@ event stream. Combat now has **threat/tanking** (tanks generate ×4 threat + a r
 and **interruptible casts** too; the theme is **procedurally textured** (stone panels/buttons via
 `StyleBoxTexture`). **M2 step 2 is in, end to end:** fixed-point 2D **positions**, a `VoidZone` ground-hazard
 mechanic (integer circle geometry) that raiders **run out of** (`HazardEvent`/`MoveEvent`) — opt-in, so the
-six existing goldens stayed byte-identical and only a new spatial fixture got one. The **stage renderer draws
-it** (void-zone circle + the dodge), and in-game a raid fights the **Sentinel** on a ranked **formation**, so
-you can watch the raid spread out of the fire. Two-tank raids now **swap** on debuff stacks (a fresh
-off-tank taunts when the active tank over-stacks — the locked taunt-window design).
-`dotnet build -warnaserror` + `dotnet test` green (88 tests).
+six existing goldens stayed byte-identical (the spatial fixture is the only one that re-blesses). A void zone
+**telegraphs** first (`HazardEvent` Spawn → Active → Expire): a pulsing warning ring, a reaction window, then
+it goes live. The **stage renderer draws** all of it (warning ring, live zone, the dodge), and in-game a raid
+fights the **Sentinel** on a ranked **formation**, so you can watch the raid spread out of the fire. Two-tank
+raids now **swap** on debuff stacks (a fresh off-tank taunts when the active tank over-stacks — the locked
+taunt-window design). `dotnet build -warnaserror` + `dotnet test` green (89 tests).
 **Next (post-slice):** trait-driven *quality* on the reactive systems (dodge/swap timing from attributes,
 like `ExecutionProfile`), and authored texture PNGs + a display font (the last visual polish). Plans:
 **[docs/m1-build-plan.md](docs/m1-build-plan.md)** · **[docs/m2-build-plan.md](docs/m2-build-plan.md)**.
