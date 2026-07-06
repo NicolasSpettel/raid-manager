@@ -11,8 +11,10 @@
 **management loop**: load/create a guild → **roster screen** (levels + gear power, last-raid banner) →
 **pick a boss** (Warden or Sentinel) → **run the real engine** → **watch the combat playback** (HP bars,
 log, play/pause/speed/seek) → back → **Save** (atomic, `user://saves/`). Raids have **consequences**: a win
-awards gold + XP, raiders **level up**, the boss **drops gear** that auto-equips (folding into combat stats),
-and the outcome is folded into a `RaidSummary` and auto-saved — a real campaign with progression. Headless,
+awards gold + XP, raiders **level up** (+8%/level to HP + auto-attack) and the boss **drops gear** that
+auto-equips — both fold into combat stats, so progression has two real axes. The outcome is folded into a
+`RaidSummary` and auto-saved — a real campaign with progression. A regression test proves the flywheel: a
+guild that farms the Ashen King (→ Lv 8, gear ~408) can then clear the **Frostwarden** it was 0/6 on when fresh. Headless,
 `sim campaign --raids N` drives the **same loop** for balance. Under it: a deterministic, data-driven combat
 engine and a versioned `GuildSave` (chained through real **v1 → v2 → v3** migrations); a first-cut carved-stone
 theme with a procedural stone-textured backdrop. **Auras** (DoTs + stacking debuffs) back a
@@ -29,7 +31,7 @@ six existing goldens stayed byte-identical (the spatial fixture is the only one 
 it goes live. The **stage renderer draws** all of it (warning ring, live zone, the dodge), and in-game a raid
 fights the **Sentinel** on a ranked **formation**, so you can watch the raid spread out of the fire. Two-tank
 raids now **swap** on debuff stacks (a fresh off-tank taunts when the active tank over-stacks — the locked
-taunt-window design). `dotnet build -warnaserror` + `dotnet test` green (89 tests).
+taunt-window design). `dotnet build -warnaserror` + `dotnet test` green (90 tests).
 **Next (post-slice):** trait-driven *quality* on the reactive systems (dodge/swap timing from attributes,
 like `ExecutionProfile`), and authored texture PNGs + a display font (the last visual polish). Plans:
 **[docs/m1-build-plan.md](docs/m1-build-plan.md)** · **[docs/m2-build-plan.md](docs/m2-build-plan.md)**.
