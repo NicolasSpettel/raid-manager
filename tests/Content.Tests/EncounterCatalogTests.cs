@@ -29,6 +29,15 @@ public class EncounterCatalogTests
         }
     }
 
+    [Fact]
+    public void AshenKing_AppliesAuras()
+    {
+        SimResult result = Simulator.SimulateEncounter(new SimInput(
+            new SeededRng(1), SimConfig.Default, StandardRaid(), Encounters.AshenKing));
+
+        Assert.Contains(result.Events, e => e is AuraApply); // its tank debuff / DoT land
+    }
+
     private static RaidSetup StandardRaid() => new(new[]
     {
         new CombatantSpec(new CombatantId("r:tank"), CombatantKind.Raider, Side.Raid, CombatantRole.Tank, "Tank",

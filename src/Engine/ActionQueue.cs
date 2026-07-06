@@ -14,17 +14,25 @@ internal enum ActionKind
 
     /// <summary>A boss mechanic on the encounter timeline fires.</summary>
     Mechanic,
+
+    /// <summary>A periodic aura (damage-over-time) ticks on its bearer.</summary>
+    AuraTick,
+
+    /// <summary>An aura's duration elapses and it is removed.</summary>
+    AuraExpire,
 }
 
 /// <summary>
 /// A future action. <see cref="Ability"/> is set only for <see cref="ActionKind.CastComplete"/>;
-/// <see cref="MechanicIndex"/> only for <see cref="ActionKind.Mechanic"/> (index into the timeline).
+/// <see cref="MechanicIndex"/> only for <see cref="ActionKind.Mechanic"/>; <see cref="AuraKey"/> only for
+/// the aura actions (the aura id on <see cref="Actor"/>).
 /// </summary>
 internal readonly record struct ScheduledAction(
     ActionKind Kind,
     CombatantId Actor = default,
     AbilityId? Ability = null,
-    int MechanicIndex = -1);
+    int MechanicIndex = -1,
+    string? AuraKey = null);
 
 /// <summary>
 /// Deterministic schedule of future actions, ordered by (tick, insertion seq). Same-tick actions

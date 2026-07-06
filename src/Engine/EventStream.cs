@@ -46,6 +46,8 @@ public static class EventStream
         EncounterStart s => $"START t={s.Tick} encounter={s.EncounterId}",
         PhaseChange p => $"PHASE t={p.Tick} phase={Int(p.Phase)} name={p.Name}",
         MechanicEvent m => $"MECH  t={m.Tick} mechanic={m.Mechanic} note={m.Note}",
+        AuraApply a => $"AURA  t={a.Tick} target={a.Target} aura={a.Aura} stacks={Int(a.Stacks)}",
+        AuraExpire a => $"AUREX t={a.Tick} target={a.Target} aura={a.Aura}",
         CastStart c => $"CAST  t={c.Tick} src={c.Source} ability={c.Ability} dur={Int(c.DurationTicks)} dst={c.Target}",
         CastEnd c => $"CEND  t={c.Tick} src={c.Source} ability={c.Ability} result={c.Result}",
         Damage d => FormatDamage(d),

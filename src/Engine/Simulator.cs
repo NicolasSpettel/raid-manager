@@ -93,6 +93,12 @@ public static class Simulator
             case ActionKind.Mechanic:
                 ResolveMechanic(ctx, action.MechanicIndex, tick);
                 break;
+            case ActionKind.AuraTick:
+                ResolveAuraTick(ctx, action.Actor, action.AuraKey, tick);
+                break;
+            case ActionKind.AuraExpire:
+                ResolveAuraExpire(ctx, action.Actor, action.AuraKey, tick);
+                break;
         }
     }
 
@@ -237,12 +243,71 @@ public static class Simulator
 
     private static void DealDamage(SimContext ctx, Combatant source, Combatant target, int amount, AbilityId? ability, int tick)
     {
-        target.Hp -= amount;
-        ctx.Emit(new Damage(new Tick(tick), source.Id, target.Id, amount, ability));
+        int taken = amount * target.DamageTakenMultPct / 100; // debuff stacks raise damage taken
+        target.Hp -= taken;
+        ctx.Emit(new Damage(new Tick(tick), source.Id, target.Id, taken, ability));
         if (!target.IsAlive)
         {
             ctx.Emit(new Death(new Tick(tick), target.Id));
         }
+    }
+
+    private static void ApplyAuraTo(SimContext ctx, Combatant target, AuraDef def, int tick)
+    {
+        bool wasActive = target.GetAura(def.Id) is not null;
+        AuraInstance instance = target.ApplyAura(def, tick);
+        ctx.Emit(new AuraApply(new Tick(tick), target.Id, def.Id, instance.Stacks));
+
+        // Every apply schedules a fresh expiry; stale ones no-op (they check ExpiresAtTick).
+        ctx.Queue.Schedule(instance.ExpiresAtTick, new ScheduledAction(ActionKind.AuraExpire, target.Id, AuraKey: def.Id));
+
+        // Start the damage-over-time chain only on a NEW application (a refresh already has one running).
+        if (!wasActive && def.TickIntervalTicks > 0 && def.DamagePerTick > 0)
+        {
+            ctx.Queue.Schedule(tick + def.TickIntervalTicks, new ScheduledAction(ActionKind.AuraTick, target.Id, AuraKey: def.Id));
+        }
+    }
+
+    private static void ResolveAuraTick(SimContext ctx, CombatantId bearerId, string? auraKey, int tick)
+    {
+        if (auraKey is null)
+        {
+            return;
+        }
+
+        Combatant? bearer = ctx.Get(bearerId);
+        AuraInstance? aura = bearer?.GetAura(auraKey);
+        if (bearer is null || !bearer.IsAlive || aura is null || tick > aura.ExpiresAtTick)
+        {
+            return;
+        }
+
+        Combatant source = ctx.Boss ?? bearer; // damage-over-time is attributed to the boss
+        DealDamage(ctx, source, bearer, aura.Def.DamagePerTick, new AbilityId(auraKey), tick);
+
+        int next = tick + aura.Def.TickIntervalTicks;
+        if (next <= aura.ExpiresAtTick)
+        {
+            ctx.Queue.Schedule(next, new ScheduledAction(ActionKind.AuraTick, bearerId, AuraKey: auraKey));
+        }
+    }
+
+    private static void ResolveAuraExpire(SimContext ctx, CombatantId bearerId, string? auraKey, int tick)
+    {
+        if (auraKey is null)
+        {
+            return;
+        }
+
+        Combatant? bearer = ctx.Get(bearerId);
+        AuraInstance? aura = bearer?.GetAura(auraKey);
+        if (bearer is null || aura is null || tick < aura.ExpiresAtTick)
+        {
+            return; // refreshed later — not actually expired yet
+        }
+
+        bearer.RemoveAura(auraKey);
+        ctx.Emit(new AuraExpire(new Tick(tick), bearerId, auraKey));
     }
 
     private static void ApplyHeal(SimContext ctx, Combatant source, Combatant target, DirectHeal heal, AbilityId ability, int tick)
@@ -389,6 +454,31 @@ public static class Simulator
             case MechanicArchetype.Enrage:
                 boss.DamageDealtMultPct += mechanic.Amount;
                 ctx.Emit(new MechanicEvent(new Tick(tick), mechanic.Id, "enrage"));
+                break;
+
+            case MechanicArchetype.RaidDot:
+                ctx.Emit(new MechanicEvent(new Tick(tick), mechanic.Id, "dot"));
+                var dot = new AuraDef($"aura:{mechanic.Id}", DurationTicks: 50, TickIntervalTicks: 10, DamagePerTick: mechanic.Amount);
+                foreach (Combatant r in ctx.SpawnOrder)
+                {
+                    if (r.Side == Side.Raid && r.IsAlive)
+                    {
+                        ApplyAuraTo(ctx, r, dot, tick);
+                    }
+                }
+
+                break;
+
+            case MechanicArchetype.TankDebuff:
+                Combatant? debuffTarget = ctx.PickEnemy(boss);
+                if (debuffTarget is not null)
+                {
+                    ctx.Emit(new MechanicEvent(new Tick(tick), mechanic.Id, "debuff"));
+                    var debuff = new AuraDef(
+                        $"aura:{mechanic.Id}", DurationTicks: 80, DamageTakenBonusPctPerStack: mechanic.Amount, MaxStacks: 5);
+                    ApplyAuraTo(ctx, debuffTarget, debuff, tick);
+                }
+
                 break;
         }
     }

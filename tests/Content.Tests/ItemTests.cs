@@ -27,6 +27,7 @@ public class ItemTests
     [Theory]
     [InlineData("warden")]
     [InlineData("sentinel")]
+    [InlineData("ashen_king")]
     public void EveryLootEntry_ResolvesToARealItem(string encounterId)
     {
         var pool = Loot.For(encounterId);

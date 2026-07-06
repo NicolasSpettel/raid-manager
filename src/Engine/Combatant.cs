@@ -65,6 +65,7 @@ public sealed record CombatantSpec(
 internal sealed class Combatant
 {
     private readonly Dictionary<AbilityId, int> _cooldownReadyAt = new();
+    private readonly Dictionary<string, AuraInstance> _auras = new();
 
     public Combatant(CombatantSpec spec)
     {
@@ -87,6 +88,40 @@ internal sealed class Combatant
 
     /// <summary>Percent multiplier on damage this combatant deals (100 = normal). Raised by Enrage.</summary>
     public int DamageDealtMultPct { get; set; } = 100;
+
+    /// <summary>Percent multiplier on damage this combatant takes (100 = normal). Raised by debuff stacks.</summary>
+    public int DamageTakenMultPct
+    {
+        get
+        {
+            int pct = 100;
+            foreach (AuraInstance aura in _auras.Values)
+            {
+                pct += aura.Stacks * aura.Def.DamageTakenBonusPctPerStack;
+            }
+
+            return pct;
+        }
+    }
+
+    /// <summary>Apply or refresh an aura, returning the live instance (with its current stack count).</summary>
+    public AuraInstance ApplyAura(AuraDef def, int tick)
+    {
+        if (_auras.TryGetValue(def.Id, out AuraInstance? existing))
+        {
+            existing.Stacks = System.Math.Min(def.MaxStacks, existing.Stacks + 1);
+            existing.ExpiresAtTick = tick + def.DurationTicks;
+            return existing;
+        }
+
+        var instance = new AuraInstance(def, stacks: 1, expiresAtTick: tick + def.DurationTicks);
+        _auras[def.Id] = instance;
+        return instance;
+    }
+
+    public AuraInstance? GetAura(string id) => _auras.TryGetValue(id, out AuraInstance? a) ? a : null;
+
+    public void RemoveAura(string id) => _auras.Remove(id);
 
     /// <summary>Current spendable resource (mana). Regenerated lazily at decision points.</summary>
     public int Resource { get; set; }

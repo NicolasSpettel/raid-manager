@@ -32,7 +32,22 @@ public static class Encounters
             new MechanicInstance("sentinel.pulse", MechanicArchetype.SpreadDamage, MechanicSchedule.Repeating(35, 35), 18),
         });
 
-    public static IReadOnlyList<EncounterDef> All { get; } = new[] { Warden, Sentinel };
+    // A tier-2 boss showcasing the aura mechanics: a stacking tank debuff (the tank takes escalating
+    // damage — the tankSwapDebuff idea) and a raid-wide damage-over-time. Meant for a geared guild.
+    public static EncounterDef AshenKing { get; } = new(
+        "ashen_king", "The Ashen King",
+        new[] { Boss("boss:ashen", "The Ashen King", maxHp: 2000, attack: 28, swing: 8) },
+        new[] { new PhaseDef(0, "Cinders"), new PhaseDef(1, "Conflagration", HpBelowPct: 40) },
+        new[]
+        {
+            new MechanicInstance("ashen.debuff", MechanicArchetype.TankDebuff, MechanicSchedule.Repeating(22, 22), 12),
+            new MechanicInstance("ashen.buster", MechanicArchetype.TankBuster, MechanicSchedule.Repeating(30, 30), 85),
+            new MechanicInstance("ashen.dot", MechanicArchetype.RaidDot, MechanicSchedule.Repeating(40, 40), 6),
+            new MechanicInstance("ashen.spread", MechanicArchetype.SpreadDamage, MechanicSchedule.Repeating(15, 22), 24, Phase: 1),
+            new MechanicInstance("ashen.enrage", MechanicArchetype.Enrage, MechanicSchedule.Once(500), 50),
+        });
+
+    public static IReadOnlyList<EncounterDef> All { get; } = new[] { Warden, Sentinel, AshenKing };
 
     private static CombatantSpec Boss(string id, string name, int maxHp, int attack, int swing) => new(
         new CombatantId(id), CombatantKind.Boss, Side.Enemy, CombatantRole.Tank, name,

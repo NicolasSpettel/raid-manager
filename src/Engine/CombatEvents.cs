@@ -37,6 +37,12 @@ public sealed record PhaseChange(Tick Tick, int Phase, string Name) : CombatEven
 /// <summary>A boss mechanic fired. <paramref name="Note"/> is a short label (e.g. "spread", "buster").</summary>
 public sealed record MechanicEvent(Tick Tick, string Mechanic, string Note) : CombatEvent(Tick);
 
+/// <summary>An aura was applied to (or refreshed on) <paramref name="Target"/>, now at <paramref name="Stacks"/> stacks.</summary>
+public sealed record AuraApply(Tick Tick, CombatantId Target, string Aura, int Stacks) : CombatEvent(Tick);
+
+/// <summary>An aura expired from <paramref name="Target"/>.</summary>
+public sealed record AuraExpire(Tick Tick, CombatantId Target, string Aura) : CombatEvent(Tick);
+
 /// <summary><paramref name="Source"/> began casting <paramref name="Ability"/> at <paramref name="Target"/>.</summary>
 public sealed record CastStart(Tick Tick, CombatantId Source, AbilityId Ability, int DurationTicks, CombatantId Target)
     : CombatEvent(Tick);

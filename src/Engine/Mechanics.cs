@@ -16,6 +16,12 @@ public enum MechanicArchetype
 
     /// <summary>The boss gains a permanent <c>+Amount%</c> to the damage it deals (a soft enrage).</summary>
     Enrage,
+
+    /// <summary>Applies a damage-over-time aura (<c>Amount</c> damage per second) to every raider.</summary>
+    RaidDot,
+
+    /// <summary>Stacks a debuff on the boss's current target that adds <c>+Amount%</c> damage taken per stack.</summary>
+    TankDebuff,
 }
 
 /// <summary>When a mechanic fires: once at a tick, or repeating from a start tick.</summary>

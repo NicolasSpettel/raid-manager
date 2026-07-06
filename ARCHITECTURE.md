@@ -15,10 +15,11 @@ awards gold + XP, raiders **level up**, the boss **drops gear** that auto-equips
 and the outcome is folded into a `RaidSummary` and auto-saved — a real campaign with progression. Headless,
 `sim campaign --raids N` drives the **same loop** for balance. Under it: a deterministic, data-driven combat
 engine and a versioned `GuildSave` (chained through real **v1 → v2 → v3** migrations); a first-cut carved-stone
-theme with a procedural stone-textured backdrop. `dotnet build -warnaserror` + `dotnet test` green (55 tests).
-**Next (post-slice):** the authored **textured `Theme`** + display font (the gritty look), deep raid
-**assignments** (with the deferred `tankSwapDebuff`/`interruptibleCast` archetypes), a gear screen, then M2
-(the 2D tactical stage renderer). Plan: **[docs/m1-build-plan.md](docs/m1-build-plan.md)**. Positions (5) deferred.
+theme with a procedural stone-textured backdrop. **Auras** (DoTs + stacking debuffs) now back a real
+tier-2 boss (the Ashen King). `dotnet build -warnaserror` + `dotnet test` green (59 tests).
+**Next (post-slice):** the authored **textured `Theme`** + display font (the gritty look), threat-based
+taunt-swaps + the `interruptibleCast` archetype, a gear screen, then M2 (the 2D tactical stage renderer).
+Plan: **[docs/m1-build-plan.md](docs/m1-build-plan.md)**. Positions (5) deferred.
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)
 → [docs/BLUEPRINT.md](docs/BLUEPRINT.md) §4 (repo) & §10 (conventions) → [docs/engine-spec.md](docs/engine-spec.md)
@@ -121,8 +122,8 @@ M0 foundation built and green. Each module gets one line: what it owns, what it 
 
 | Module | Owns (M0 state) | Must not know about |
 |---|---|---|
-| `src/Engine` | Deterministic sim core: `SeededRng`, `Tick`/`TimeModel`, combatant model, scheduled `ActionQueue`, abilities & casts (`DirectDamage`/`DirectHeal` + GCD/cooldown/priority/resource), role-aware targeting, `ExecutionProfile` (reaction delay), encounter model (`EncounterDef` phases + mechanic timeline; `MechanicArchetype` generic runtime), `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` | Content · Game · App · Godot — references nothing in the solution |
-| `src/Content` | Ability registry (`AbilityRow` → `AbilityDef`, generated `Tooltips`), class roster (`Classes` + `createRaider` factory), encounter catalog (`Encounters`: Warden, Sentinel — phases + mechanic timelines), item catalog (`Items` + per-encounter `Loot` tables), `ContentFixtures` | Game · App · Godot |
+| `src/Engine` | Deterministic sim core: `SeededRng`, `Tick`/`TimeModel`, combatant model, scheduled `ActionQueue`, abilities & casts (`DirectDamage`/`DirectHeal` + GCD/cooldown/priority/resource), role-aware targeting, `ExecutionProfile` (reaction delay), auras (`AuraDef` — DoTs + stacking damage-taken debuffs), encounter model (`EncounterDef` phases + mechanic timeline; `MechanicArchetype` runtime: spread / buster / enrage / raid-DoT / tank-debuff), `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` | Content · Game · App · Godot — references nothing in the solution |
+| `src/Content` | Ability registry (`AbilityRow` → `AbilityDef`, generated `Tooltips`), class roster (`Classes` + `createRaider` factory), encounter catalog (`Encounters`: Warden, Sentinel, Ashen King — phases + mechanic timelines incl. auras), item catalog (`Items` + per-encounter `Loot` tables), `ContentFixtures` | Game · App · Godot |
 | `src/Game` | The management layer: `GuildSave` aggregate (guild + roster + progression + gear + economy + raid history), `SaveMigrations` (v3, real chained v1→v2→v3), `SaveSerializer`, atomic `FileStorageAdapter`, `SaveService`, `Guilds.CreateStarter`, `Warband` (projects raiders → combatants, folding equipped gear into stats), and `RaidResolver` (folds a fight into gold / XP / levels / loot drops + a `RaidSummary`) | App · Godot |
 | `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |
 | `src/App` | Godot 4.7 C#: `AppTheme` (carved-stone `Theme`, first cut), `Main` coordinator (load/create guild → roster → Start Raid → playback → save), `RosterView`, and `CombatView` (combat-log playback, a pure consumer of the event stream). Wires save + classes + engine into the raid-night loop, framed by the theme. **The only Godot-referencing project.** | — |

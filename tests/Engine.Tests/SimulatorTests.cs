@@ -126,6 +126,50 @@ public class SimulatorTests
     }
 
     [Fact]
+    public void RaidDot_DamagesRaidersOverTime()
+    {
+        var raider = InertRaider("r:1", maxHp: 1000);
+        var boss = new CombatantSpec(
+            new CombatantId("boss:d"), CombatantKind.Boss, Side.Enemy, CombatantRole.Tank, "D",
+            new StatBlock(MaxHp: 1_000_000, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0));
+        var timeline = new[]
+        {
+            new MechanicInstance("m.dot", MechanicArchetype.RaidDot, MechanicSchedule.Once(10), Amount: 5),
+        };
+
+        SimResult result = Simulator.SimulateEncounter(new SimInput(
+            new SeededRng(1), new SimConfig(80), new RaidSetup(new[] { raider }),
+            new EncounterDef("t", "T", new[] { boss }, Phases: null, Timeline: timeline)));
+
+        int dotTicks = result.Events.OfType<Damage>().Count(d => d.Target.Value == "r:1" && d.Ability?.Value == "aura:m.dot");
+        Assert.True(dotTicks >= 3, $"expected several DoT ticks, got {dotTicks}");
+        Assert.Contains(result.Events, e => e is AuraApply a && a.Aura == "aura:m.dot");
+        Assert.Contains(result.Events, e => e is AuraExpire a && a.Aura == "aura:m.dot");
+    }
+
+    [Fact]
+    public void TankDebuff_RaisesDamageTaken()
+    {
+        var tank = InertRaider("r:tank", maxHp: 1_000_000);
+        var boss = new CombatantSpec(
+            new CombatantId("boss:d"), CombatantKind.Boss, Side.Enemy, CombatantRole.Tank, "D",
+            new StatBlock(MaxHp: 1_000_000, AttackDamage: 10, AttackVariance: 0, SwingIntervalTicks: 10));
+        var timeline = new[]
+        {
+            new MechanicInstance("m.debuff", MechanicArchetype.TankDebuff, MechanicSchedule.Once(25), Amount: 50),
+        };
+
+        SimResult result = Simulator.SimulateEncounter(new SimInput(
+            new SeededRng(1), new SimConfig(60), new RaidSetup(new[] { tank }),
+            new EncounterDef("t", "T", new[] { boss }, Phases: null, Timeline: timeline)));
+
+        var bossHits = result.Events.OfType<Damage>().Where(d => d.Source.Value == "boss:d").ToList();
+        Assert.Equal(10, bossHits.First(d => d.Tick.Value < 25).Amount);
+        Assert.Equal(15, bossHits.First(d => d.Tick.Value > 25).Amount); // +50% damage taken after the debuff
+        Assert.Contains(result.Events, e => e is AuraApply a && a.Aura == "aura:m.debuff");
+    }
+
+    [Fact]
     public void NeitherSideDeals_OutcomeIsTimeout()
     {
         SimResult result = Fight(

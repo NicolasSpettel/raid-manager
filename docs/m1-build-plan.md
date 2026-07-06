@@ -56,9 +56,10 @@ attribute set. **Exit:** a healer keeps a tank alive; a sloppy raider visibly un
 
 ### Step 4 — Encounter model + mechanic archetypes ✅ done
 `EncounterDef` with enemies, ordered **phases** (tick/HP-below triggers), and a **timeline** of mechanic
-instances, interpreted by **one generic runtime**. **M1 v0 archetypes — `spreadDamage`, `tankBuster`,
-`enrage`** — chosen because they're fully executable with the current engine; `tankSwapDebuff` and
-`interruptibleCast` need auras / threat / raid interrupts and join once those subsystems land. Two-phase
+instances, interpreted by **one generic runtime**. **Archetypes: `spreadDamage`, `tankBuster`,
+`enrage`, plus `raidDot` and `tankDebuff`** (post-slice, once the **aura system** landed — DoTs +
+stacking damage-taken debuffs; `tankDebuff` is the `tankSwapDebuff` idea minus the taunt-swap, which
+needs threat). `interruptibleCast` still needs raid interrupts. The Ashen King (tier 2) uses the aura set. Two-phase
 boss (Warden, HP&lt;50% → Frenzy, phase-gated mechanic) + a second authored boss (Sentinel) prove
 **encounter #2 = one new row** ([Content/Encounters](../src/Content/Encounters/Encounters.cs)). Golden +
 behavioral tests green.
