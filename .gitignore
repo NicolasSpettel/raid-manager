@@ -1,0 +1,28 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+[Rr]elease/
+[Dd]ebug/
+artifacts/
+TestResults/
+
+# Godot 4
+.godot/
+/android/
+*.translation
+export_presets.cfg
+.mono/
+data_*/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+
+# Build/exports
+/export/
+/build/

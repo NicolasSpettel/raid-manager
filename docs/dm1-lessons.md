@@ -1,0 +1,21 @@
+# DM1 Lessons → Raid Manager Decisions
+
+The ten hard-won lessons from Dungeon Manager (E:\dungeon-manager — see its `docs/refactor-roadmap.md`,
+`docs/content-pipeline.md`, `docs/audit-*.md`, `docs/SIM-HANDOFF.md` for the receipts), each mapped
+to the blueprint decision that answers it. If a future change violates one of these, this file is
+the "why we cared" record.
+
+| # | DM1 lesson (what happened) | Raid Manager answer (where) |
+|---|---|---|
+| 1 | **Engine purity was retrofitted.** `engine.ts` began as one 1,037-line function whose helpers closed over engine-local state; extracting them took a multi-phase factory-pattern campaign with "box" refs for shared mutable state. | Engine is pure from commit 1; systems are plain functions over an explicit `SimContext` parameter — closing over sim state is the named anti-pattern. The `Engine` project has no Godot reference, so UI imports won't compile. (engine-spec §1, §5; [ADR-0001](adr/0001-solution-and-boundaries.md)) |
+| 2 | **The balance bot mirrored game logic** in a separate 2,843-line `campaign-sim.mjs` and drifted (free-in-sim vs costs-stamina-in-game mirror bugs). | `src/Sim` references the real `Game.RunDay()` / `Engine.SimulateEncounter()`. A mirror cannot drift because a mirror does not exist. (BLUEPRINT §4; testing-strategy §5) |
+| 3 | **Tooltip/engine drift was the #1 bug class** (tooltip "187%", engine 2×; Twin Renewal's two-targets-vs-double). The drift *test* caught a live bug on first run. | Tooltips are templates interpolating the registry row's own fields — generated, never hand-written; drift test fails on any non-token digit. (content-authoring; testing-strategy §2) |
+| 4 | **Boss mechanics were spread across 3+ files** (dungeon-data + bosses/*.ts handlers + dungeon-tuning), so every boss meant cross-file edits; healer archetypes, by contrast, paid off. | Encounter = one registry row owning scene, phases, timeline, tuning; mechanic archetypes with a same-row `custom` escape hatch. Definition of done: one new file, one index line. (engine-spec §8; content-authoring) |
+| 5 | **Party size 5 was hardcoded in ~10 places**, including the `tank/dps_1..3/healer` equipment Record — scaling to raids was estimated as a rewrite-grade change. | Raid size is a runtime value; combatants in id-keyed Maps; composition rules are data (`{size, tanks:{min}, healers:{ratio}}`). Slot-name records are the named anti-pattern. (engine-spec §4) |
+| 6 | **Every screen existed twice** (Desktop + `Mobile*`) with inconsistent frames per screen — the developer's top visual complaint and a permanent double-maintenance tax. | Design system before any screen; screens compose `ds/` primitives only; one responsive tree; `Mobile*` forks banned in the conventions. (ui-design-system §1) |
+| 7 | **Save migrations were ad-hoc**: `normalizeSavedRunState()` accumulated six hand-inlined migrations with `version` frozen at 1; one bad remap produced the "triple-Rahjo" dedupe repair. | Versioned migration registry folded at load, schema validation at the boundary, frozen fixture per historical version round-tripped in CI. (save-format) |
+| 8 | **Playback perf sins**: unmemoized context value re-rendered the whole tree per tick; index-keyed log rows; per-tick inline props. | Godot signals scoped per concern (unrelated change ≠ UI rebuild); stable `(t, seq)` / entity-id keys; sim on a background thread; folds cached outside render. ([ADR-0002](adr/0002-state-model.md); ui-design-system §3, §6) |
+| 9 | **Engine hot-path waste** at 5-man scale (~260 redundant trait scans/turn, closures rebuilt 15–20×/turn) — and raids are ~6× the combatants. | Cached effective stats invalidated on change; incrementally maintained alive-lists; scheduled action queue instead of per-tick scans; no hot-loop allocation; `--profile` in CI from M0 with an explicit perf budget. (engine-spec §4, §5, §10) |
+| 10 | **State discipline worked when centralized** (`use-run-state` as the single persistent-state home) and hurt everywhere it wasn't; size budgets ("split when you need 'and'") kept late-stage files honest. | One `GuildSave` aggregate owned by `src/Game`, written only through `GameState` methods; transient UI state separate; small-file budgets from commit 1. (save-format; BLUEPRINT §10) |
+
+**Standing rule (ADR-0006):** these lessons port as prose; DM1 code does not port at all.
