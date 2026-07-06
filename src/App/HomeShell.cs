@@ -35,6 +35,9 @@ public partial class HomeShell : Control
     private Action _onMenu = null!;
     private Action<IReadOnlyList<IReadOnlyList<ActivityType>>> _onSimulateDay = null!;
     private Action<IReadOnlyList<IReadOnlyList<ActivityType>>> _onSimulateWeek = null!;
+    private Action<RaiderRecord> _onSignFreeAgent = null!;
+    private Action<string> _onPromoteYouth = null!;
+    private World? _world; // this career's living world — source of the free-agent market (may be null on very old saves)
     private string? _lastWeekSummary;
 
     private PanelContainer _contentPanel = null!;
@@ -53,6 +56,9 @@ public partial class HomeShell : Control
         Action onMenu,
         Action<IReadOnlyList<IReadOnlyList<ActivityType>>> onSimulateDay,
         Action<IReadOnlyList<IReadOnlyList<ActivityType>>> onSimulateWeek,
+        Action<RaiderRecord> onSignFreeAgent,
+        Action<string> onPromoteYouth,
+        World? world,
         string? lastWeekSummary,
         string initialTab)
     {
@@ -68,6 +74,9 @@ public partial class HomeShell : Control
         _onMenu = onMenu;
         _onSimulateDay = onSimulateDay;
         _onSimulateWeek = onSimulateWeek;
+        _onSignFreeAgent = onSignFreeAgent;
+        _onPromoteYouth = onPromoteYouth;
+        _world = world;
         _lastWeekSummary = lastWeekSummary;
 
         var margin = new MarginContainer();
@@ -142,6 +151,7 @@ public partial class HomeShell : Control
         {
             "Squad" => BuildSquad(),
             "Calendar" => BuildCalendar(),
+            "Transfers" => BuildTransfers(),
             "Guild" => BuildGuild(),
             "Manager" => BuildManager(),
             "Home" => BuildHome(),
@@ -282,6 +292,75 @@ public partial class HomeShell : Control
             new[] { d, x, x, x }, // Sat — a dungeon
             new[] { x, x, x, x }, // Sun — rest
         };
+    }
+
+    // The Transfers tab (GDD §8b/§10): your youth academy's intake + the living world's free-agent market.
+    private ScrollContainer BuildTransfers()
+    {
+        VBoxContainer col = Padded();
+        col.AddChild(Header("Transfers"));
+        col.AddChild(Dim($"Bank: {_guild.Economy.Gold}g   ·   sign youth prospects or free agents to fill out the roster."));
+
+        col.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
+        col.AddChild(Header("Youth intake"));
+        IReadOnlyList<RaiderRecord> prospects = _guild.YouthProspects ?? Array.Empty<RaiderRecord>();
+        if (prospects.Count == 0)
+        {
+            col.AddChild(Dim("No prospects right now — a fresh intake arrives with each new season."));
+        }
+        else
+        {
+            col.AddChild(Dim("Your academy's promising youngsters — modest now, room to grow. Promote one into the senior roster."));
+            foreach (RaiderRecord p in prospects)
+            {
+                col.AddChild(RecruitRow(p, YouthProgram.PromoteCost, "Promote", () => _onPromoteYouth(p.Id)));
+            }
+        }
+
+        col.AddChild(new Control { CustomMinimumSize = new Vector2(0, 10) });
+        col.AddChild(Header("Free agents"));
+        if (_world is null)
+        {
+            col.AddChild(Dim("The market is unavailable on this save."));
+            return Wrap(col);
+        }
+
+        IReadOnlyList<TransferListing> agents = TransferMarket.FreeAgents(_world, _guild);
+        col.AddChild(Dim($"{agents.Count} guildless raiders looking for a home — best first. Click a name to inspect them."));
+        foreach (TransferListing listing in agents)
+        {
+            col.AddChild(RecruitRow(listing.Raider, listing.Fee, "Sign", () => _onSignFreeAgent(listing.Raider)));
+        }
+
+        return Wrap(col);
+    }
+
+    // One market row: an inspectable name, role/stars/age at a glance, and an affordable-gated sign/promote button.
+    private HBoxContainer RecruitRow(RaiderRecord raider, int cost, string verb, Action onBuy)
+    {
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 10);
+
+        var name = new Button { Text = raider.Name, CustomMinimumSize = new Vector2(190, 32) };
+        name.Pressed += () => _onRaider(raider);
+        row.AddChild(name);
+
+        (CombatantRole role, int half) = Ratings.Best(raider);
+        ClassDef cls = Classes.Registry.Get(raider.ClassId);
+        var info = new Label
+        {
+            Text = $"{cls.Name}  ·  {role} {Ratings.Format(half)}  ·  age {Aging.AgeOf(raider, _guild.SeasonNumber)}",
+            CustomMinimumSize = new Vector2(300, 0),
+        };
+        info.AddThemeColorOverride("font_color", new Color("#c8c2b4"));
+        row.AddChild(info);
+
+        bool canAfford = _guild.Economy.Gold >= cost;
+        var buy = new Button { Text = $"{verb} ({cost}g)", CustomMinimumSize = new Vector2(130, 32), Disabled = !canAfford };
+        buy.Pressed += onBuy;
+        row.AddChild(buy);
+
+        return row;
     }
 
     private ScrollContainer BuildGuild()

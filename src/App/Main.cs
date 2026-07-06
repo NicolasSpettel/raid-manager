@@ -128,6 +128,7 @@ public partial class Main : Control
             GeneratorVersion = WorldGen.GeneratorVersion,    // … pinned to the generator that made it …
             ManagerGuildId = offer.GuildId.Value,            // … and which guild in it you manage.
             SeasonWeek = 1,
+            YouthProspects = YouthProgram.Intake(_pendingWorld!.Seed, seasonNumber: 1, offer.GuildId.Value), // your first academy intake
         };
 
         if (manager.BackgroundId == "rich_sponsor") // the sponsor's perk: extra starting funds
@@ -161,6 +162,7 @@ public partial class Main : Control
         view.Load(_guild, _difficulty,
             onStartRaid: StartRaid, onCycleDifficulty: CycleDifficulty, onRest: Rest, onRecruit: Recruit, onSave: SaveGuild,
             onRaider: ShowRaider, onMenu: ShowWelcome, onSimulateDay: SimulateDay, onSimulateWeek: SimulateWeek,
+            onSignFreeAgent: SignFreeAgent, onPromoteYouth: PromoteYouth, world: _pendingWorld,
             lastWeekSummary: _lastWeekSummary, initialTab: tab);
         Swap(view);
     }
@@ -231,7 +233,14 @@ public partial class Main : Control
         {
             int nextSeason = guild.SeasonNumber + 1; // season boundary → age the roster, start season N+1
             AgingResult aged = Aging.AdvanceSeason(guild, nextSeason);
-            guild = aged.Guild with { SeasonNumber = nextSeason, SeasonWeek = 1, SeasonDay = 0, DownedThisWeek = System.Array.Empty<string>() };
+            IReadOnlyList<RaiderRecord> intake = guild.ManagerGuildId is { } gid
+                ? YouthProgram.Intake(guild.WorldSeed, nextSeason, gid) // a fresh academy intake each season (GDD §10)
+                : System.Array.Empty<RaiderRecord>();
+            guild = aged.Guild with
+            {
+                SeasonNumber = nextSeason, SeasonWeek = 1, SeasonDay = 0,
+                DownedThisWeek = System.Array.Empty<string>(), YouthProspects = intake,
+            };
             seasonEvents = aged.Events;
         }
 
@@ -240,9 +249,11 @@ public partial class Main : Control
 
     private void ShowRaider(RaiderRecord raider)
     {
+        // On your roster → back to the squad; a scouted prospect/free agent → back to the transfer market.
+        string origin = _guild.Roster.Any(r => r.Id == raider.Id) ? "Squad" : "Transfers";
         var view = new RaiderView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
-        view.Load(raider, _guild.SeasonNumber, onBack: () => ShowHome("Squad"), onSetTraining: target => SetTraining(raider.Id, target));
+        view.Load(raider, _guild.SeasonNumber, onBack: () => ShowHome(origin), onSetTraining: target => SetTraining(raider.Id, target));
         Swap(view);
     }
 
@@ -262,20 +273,41 @@ public partial class Main : Control
         ShowHome("Squad");
     }
 
-    private void Recruit()
+    // Recruitment now runs through the Transfers tab: your youth intake + the free-agent market (GDD §8b/§10).
+    private void Recruit() => ShowHome("Transfers");
+
+    // Sign a free agent from the living world (GDD §8b) — pay the fee, they join your roster.
+    private void SignFreeAgent(RaiderRecord agent)
     {
-        if (Recruitment.TryHire(_guild, (ulong)DateTime.UtcNow.Ticks, out GuildSave updated))
+        if (TransferMarket.TrySign(_guild, agent, out GuildSave updated))
         {
             _guild = updated;
             _saves.Save(_guild);
-            GD.Print($"recruited a raider (-{Recruitment.Cost} gold); roster now {_guild.Roster.Count}");
+            GD.Print($"signed {agent.Name} for {TransferMarket.Fee(agent)}g; roster now {_guild.Roster.Count}");
         }
         else
         {
-            GD.Print("not enough gold to recruit");
+            GD.Print($"can't sign {agent.Name} — not enough gold");
         }
 
-        ShowHome("Squad");
+        ShowHome("Transfers");
+    }
+
+    // Promote a youth prospect (GDD §10) from your academy into the senior roster.
+    private void PromoteYouth(string prospectId)
+    {
+        if (YouthProgram.TryPromote(_guild, prospectId, out GuildSave updated))
+        {
+            _guild = updated;
+            _saves.Save(_guild);
+            GD.Print($"promoted a prospect (-{YouthProgram.PromoteCost}g); roster now {_guild.Roster.Count}");
+        }
+        else
+        {
+            GD.Print("can't promote — not enough gold");
+        }
+
+        ShowHome("Transfers");
     }
 
     private void CycleDifficulty()

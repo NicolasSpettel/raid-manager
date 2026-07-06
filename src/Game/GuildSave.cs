@@ -23,7 +23,8 @@ public sealed record GuildSave(
     int SeasonNumber = 1,                       // which season of the career (advances the world clock → aging)
     int SeasonWeek = 1,
     int SeasonDay = 0,                          // 0=Monday … 6=Sunday within the current week
-    IReadOnlyList<string>? DownedThisWeek = null); // weekly lockout: bosses looted since the last Monday reset
+    IReadOnlyList<string>? DownedThisWeek = null, // weekly lockout: bosses looted since the last Monday reset
+    IReadOnlyList<RaiderRecord>? YouthProspects = null); // your youth program's current intake (GDD §10), promotable to the roster
 
 /// <summary>Guild identity. <see cref="BoardExpectation"/> is the season goal you agreed at signing (GDD §4).</summary>
 public sealed record GuildInfo(string Name, int Reputation, string? BoardExpectation = null);

@@ -119,7 +119,7 @@ public partial class RosterView : Control
         restButton.Pressed += () => onRest();
         actionRow.AddChild(restButton);
 
-        var recruitButton = new Button { Text = $"Recruit ({Recruitment.Cost}g)" };
+        var recruitButton = new Button { Text = "Recruit >" };
         recruitButton.Pressed += () => onRecruit();
         actionRow.AddChild(recruitButton);
 

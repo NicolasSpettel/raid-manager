@@ -85,6 +85,36 @@ public static class WorldGen
         return ProjectAttributes(rng, latents, age);
     }
 
+    /// <summary>
+    /// A young youth-program prospect (GDD §10): the same latent pipeline, but a forced 16–18 age so current
+    /// attributes are modest while hidden <b>potential</b> is real — an investment, not a finished raider. Its
+    /// own draw order (a fresh call), so it never touches the world golden.
+    /// </summary>
+    public static RaiderRecord GenerateProspect(
+        SeededRng rng, RaiderId id, NamePool pool, CombatantRole role, int season, GuildId guild)
+    {
+        ArgumentNullException.ThrowIfNull(rng);
+        ArgumentNullException.ThrowIfNull(pool);
+
+        ArchetypeDef archetype = PickArchetype(rng, PrestigeTier.Local);
+        LatentProfile latents = DrawLatents(rng, archetype);
+        int age = 16 + rng.NextInt(0, 3); // 16–18: a prospect, years of growth ahead
+
+        AttributeVector attributes = ProjectAttributes(rng, latents, age);
+        string classId = PickClass(rng, role);
+        var vocation = new Vocation(classId, PotentialByRole(latents.Talent, role));
+
+        string name = $"{pool.First[rng.NextInt(pool.First.Count)]} {pool.Surnames[rng.NextInt(pool.Surnames.Count)]}";
+        var identity = new Identity(name, pool.Region, season - age, rng.NextUInt());
+        var condition = new Condition(Morale: 65 + rng.NextInt(0, 20), Freshness: 100, Sharpness: 45 + rng.NextInt(0, 20));
+
+        return new RaiderRecord(
+            id.Value, name, classId,
+            Equipped: new List<string>(), InjuryRaidsLeft: 0,
+            Attributes: attributes, Condition: condition,
+            Identity: identity, Vocation: vocation, ArchetypeId: "youth", Membership: guild);
+    }
+
     // ── SlotFill (entities §3): archetype → latents → attributes → vocation → identity ──────────────────
     private static RaiderRecord GenerateRaider(
         SeededRng rng, RaiderId id, NamePool pool, PrestigeTier tier, CombatantRole role, int season, GuildId? membership)
