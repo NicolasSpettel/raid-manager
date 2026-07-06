@@ -12,8 +12,9 @@ public sealed record AgingResult(GuildSave Guild, IReadOnlyList<string> Events);
 /// <summary>
 /// Aging & the career arc (GDD §8): at each season boundary the world clock advances, so raiders get a year
 /// older. Development years (≤22) grow toward potential; the peak (23–27) holds; past ~28 the twitch stats
-/// fade while wisdom stats rise; at ~31 they retire and a youth prospect takes their place. Age is derived
-/// from birth-season vs the season number, so this is just the clock ticking. First-pass rates, all tunable.
+/// fade while wisdom stats rise; at ~31 they retire and leave the roster (you refill from the youth intake or
+/// the transfer market). Age is derived from birth-season vs the season number, so this is just the clock
+/// ticking. First-pass rates, all tunable.
 /// </summary>
 public static class Aging
 {
@@ -40,10 +41,8 @@ public static class Aging
             int age = AgeOf(raider, newSeasonNumber);
             if (age >= RetireAge)
             {
-                RaiderRecord youth = Youth(raider, newSeasonNumber, rng);
-                events.Add($"{raider.Name} retired at {age} — young {youth.Name} steps up.");
-                roster.Add(youth);
-                continue;
+                events.Add($"{raider.Name} retired at {age} — a roster spot opens up.");
+                continue; // no auto-backfill; recruit from the youth intake or the transfer market
             }
 
             roster.Add(AgeAttributes(raider, age, rng, out string? note));
@@ -107,24 +106,5 @@ public static class Aging
     {
         int best = raider.Vocation is { } v && v.PotentialByRole.Count > 0 ? v.PotentialByRole.Values.Max() : 50;
         return Math.Clamp(10 + ((best * 8) / 100), 12, GrowthCeiling);
-    }
-
-    // A 17-year-old prospect of the retiree's class — modest now, room to grow — with a fresh unique id.
-    private static RaiderRecord Youth(RaiderRecord retiree, int seasonNumber, SeededRng rng)
-    {
-        const int age = 17;
-        int birthSeason = (BaseSeason + (seasonNumber - 1)) - age;
-        string region = retiree.Identity?.Region ?? NamePools.All[0].Region;
-        NamePool pool = NamePools.All.FirstOrDefault(p => p.Region == region) ?? NamePools.All[0];
-        string name = $"{pool.First[rng.NextInt(pool.First.Count)]} {pool.Surnames[rng.NextInt(pool.Surnames.Count)]}";
-
-        var values = Attributes.Registry.All.ToDictionary(a => a.Id, _ => 7 + rng.NextInt(0, 5), StringComparer.Ordinal);
-        var identity = new Identity(name, region, birthSeason, rng.NextUInt());
-
-        return new RaiderRecord(
-            $"{retiree.Id}_y{seasonNumber}", name, retiree.ClassId,
-            Equipped: new List<string>(), InjuryRaidsLeft: 0,
-            Attributes: new AttributeVector(values), Condition: ConditionModel.Fresh,
-            Identity: identity, Vocation: retiree.Vocation, ArchetypeId: "youth", Membership: retiree.Membership);
     }
 }

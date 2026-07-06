@@ -66,7 +66,8 @@ slots with guild activities and **simulate a day** or **continue to the next rai
 fast-forward stops *before* raid days, FM-style). Dungeons gear, training develops the stat **you choose per
 raider** (their unit page), and freshness/injury move with the day's load. At the **season boundary the roster
 ages** (`Aging`, GDD §8): youth develop toward potential, veterans decline (twitch↓/wisdom↑), ~31-year-olds
-retire and a youth steps in — the career runs season after season. Clock + lockout + season number persist.
+retire and leave the roster (refill from the youth intake / transfers, once those exist) — the career runs
+season after season. Clock + lockout + season number persist.
 `dotnet build -warnaserror` + `dotnet test` green (165 tests).
 **Next (world):** balance the load/injury rates, richer activities (professions/quests/drills), the inbox that
 surfaces the week's events, contracts/transfers, and collapsing the two raider models (`RaiderRecord` ↔ world `Raider`) into one type.

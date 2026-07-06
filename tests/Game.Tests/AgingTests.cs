@@ -37,15 +37,16 @@ public class AgingTests
     }
 
     [Fact]
-    public void OldRaiders_Retire_AndAYouthStepsIn()
+    public void OldRaiders_Retire_AndLeaveTheRoster()
     {
         GuildSave guild = GuildOf(AtAge("vet", 33), AtAge("kid", 20));
 
         AgingResult result = Aging.AdvanceSeason(guild, newSeasonNumber: 5);
 
-        Assert.Equal(2, result.Guild.Roster.Count); // roster size preserved by the youth backfill
+        Assert.Single(result.Guild.Roster); // the retiree just leaves; no auto-backfill
         Assert.Contains(result.Events, e => e.Contains("retired", StringComparison.Ordinal));
         Assert.DoesNotContain(result.Guild.Roster, r => r.Id == "vet"); // the veteran is gone
+        Assert.Contains(result.Guild.Roster, r => r.Id == "kid");       // the young one stays
     }
 
     [Fact]
