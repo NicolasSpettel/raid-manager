@@ -7,15 +7,15 @@
 
 ## Project status
 
-**Phase: M1 IN PROGRESS — combat + playback + persistence (steps 1–4, 6, 7, 9; 5 deferred).** M0 is
-tagged `v0.0-m0`. A full **data-driven fight** — 4 authored classes via the `createRaider` factory versus
-**authored bosses** with phases + mechanics — runs headless (`sim run classraid`) AND **plays back visually
-in the Godot app** (HP bars, scrolling log, play/pause/speed/seek; a pure consumer of the event stream).
-**Careers persist:** `src/Game` owns the versioned `GuildSave` aggregate — create a starter guild + roster
-(deterministic, from classes), save atomically, load through a migrate+validate pipeline.
-`dotnet build -warnaserror` + `dotnet test` green (44 tests). Positions (step 5) are deferred to the
-tactical stage renderer. Plan: **[docs/m1-build-plan.md](docs/m1-build-plan.md)** — remaining: roster/gear
-screens + the RPG `Theme` (8), wire the raid night (10).
+**Phase: M1 IN PROGRESS — playable raid-night loop (steps 1–4, 6, 7, 9 + 10 first cut; 5 deferred).** M0 is
+tagged `v0.0-m0`. The Godot app is now a **loop, not a demo**: load/create a guild → **roster screen** →
+**Start Raid** (project the persistent roster into combatants via the class factory, run the real engine) →
+**watch the combat playback** (HP bars, log, play/pause/speed/seek) → back → **Save** (atomic, to
+`user://saves/`). Under it: a deterministic, data-driven combat engine (classes / abilities / healing /
+resources / boss mechanics + phases) and a versioned `GuildSave`. `dotnet build -warnaserror` +
+`dotnet test` green (45 tests). Plan: **[docs/m1-build-plan.md](docs/m1-build-plan.md)** — remaining for the
+M1 floor: the RPG-textured `Theme` + gear screen (8), assignments/loot, a `sim campaign` verb, then tag
+`v0.1-m1`. Positions (5) deferred.
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)
 → [docs/BLUEPRINT.md](docs/BLUEPRINT.md) §4 (repo) & §10 (conventions) → [docs/engine-spec.md](docs/engine-spec.md)
@@ -122,7 +122,7 @@ M0 foundation built and green. Each module gets one line: what it owns, what it 
 | `src/Content` | Ability registry (`AbilityRow` → `AbilityDef`, generated `Tooltips`), class roster (`Classes` + `createRaider` factory, kits into the ability registry), encounter catalog (`Encounters`: Warden, Sentinel — phases + mechanic timelines), `ContentFixtures` (the class raid) | Game · App · Godot |
 | `src/Game` | The save layer: `GuildSave` aggregate (guild + roster + economy), `SaveMigrations` registry, `SaveSerializer` (JSON → migrate → validate), `FileStorageAdapter` (atomic temp+rename+`.bak`), `SaveService`, and the `Guilds.CreateStarter` factory (deterministic roster from the class registry) | App · Godot |
 | `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |
-| `src/App` | Godot 4.7 C#: `Main` = combat-log playback (HP bars + scrolling log + play/pause/speed/seek), a pure consumer of the precomputed event stream; still prints the hash for the one-engine check. **The only Godot-referencing project.** | — |
+| `src/App` | Godot 4.7 C#: `Main` coordinator (load/create guild → roster → Start Raid → playback → save), `RosterView`, and `CombatView` (combat-log playback, a pure consumer of the event stream). Wires save + classes + engine into the raid-night loop. **The only Godot-referencing project.** | — |
 | `tests/Engine.Tests` | Golden (dummy/trio/caster hashes + full-stream snapshot) + determinism + outcome/cast behavioral coverage | — |
 | `tests/Content.Tests` | Registry completeness + tooltip drift + content→engine integration | — |
 | `tests/Architecture.Tests` | NetArchTest boundary rules — second net over the ProjectReference walls | — |

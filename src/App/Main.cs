@@ -1,207 +1,91 @@
-using System.Collections.Generic;
+using System;
+using System.Globalization;
 using System.Linq;
-using System.Text;
 using Content;
 using Engine;
+using Game;
 using Godot;
 
 namespace App;
 
 /// <summary>
-/// M1 combat-log playback (BLUEPRINT §8, m1-build-plan step 9). Runs the real engine once to get the
-/// precomputed event stream, then REPLAYS it with a playback clock — the UI never drives the sim, it
-/// only folds a stream it already has. HP bars, a scrolling log, and pause/speed/seek controls.
+/// The app coordinator (m1-build-plan step 10, first cut). Loads or creates the guild save, then walks
+/// the raid-night loop: roster → Start Raid (project the roster into combatants, run the real engine) →
+/// watch the playback → back → Save. The App owns the wall-clock and file paths; the deterministic
+/// libraries never do.
 /// </summary>
 public partial class Main : Control
 {
-    private const int SeekBarHeight = 22;
-
-    private SimInput _input = null!;
-    private SimResult _result = null!;
-    private string[] _lines = System.Array.Empty<string>();
-    private int _maxTick;
-
-    private double _currentTick;
-    private double _speed = 1.0;
-    private bool _playing = true;
-    private bool _syncingSeek;
-
-    private Button _playButton = null!;
-    private Button _speedButton = null!;
-    private Label _tickLabel = null!;
-    private HSlider _seek = null!;
-    private RichTextLabel _log = null!;
-    private readonly List<CombatantSpec> _combatants = new();
-    private readonly Dictionary<string, ProgressBar> _hpBars = new();
-    private readonly Dictionary<string, int> _maxHp = new();
+    private SaveService _saves = null!;
+    private GuildSave _guild = null!;
+    private Control? _current;
 
     public override void _Ready()
     {
-        _input = ContentFixtures.ClassRaid(1);
-        _result = Simulator.SimulateEncounter(_input);
-        _lines = EventStream.Serialize(_result.Events).TrimEnd('\n').Split('\n');
-        _maxTick = _result.Events.Count == 0 ? 0 : _result.Events[^1].Tick.Value;
+        string path = ProjectSettings.GlobalizePath("user://saves/guild.json");
+        _saves = new SaveService(new FileStorageAdapter(path));
+        _guild = LoadOrCreateGuild();
 
-        // The M0 "one engine, two consumers" check still holds — compare to `sim run classraid`.
-        GD.Print($"classraid hash={_result.Hash()} outcome={_result.Outcome} maxTick={_maxTick}");
-
-        foreach (CombatantSpec spec in _input.Raid.Raiders.Concat(_input.Encounter.Enemies))
-        {
-            _combatants.Add(spec);
-            _maxHp[spec.Id.Value] = spec.Stats.MaxHp;
-        }
-
-        BuildUi();
-        Render();
+        GD.Print($"guild '{_guild.Guild.Name}' roster={_guild.Roster.Count} gold={_guild.Economy.Gold}");
+        ShowRoster();
     }
 
-    public override void _Process(double delta)
+    private GuildSave LoadOrCreateGuild()
     {
-        if (!_playing)
+        try
         {
-            return;
-        }
-
-        _currentTick += delta * TimeModel.TicksPerSecond * _speed;
-        if (_currentTick >= _maxTick)
-        {
-            _currentTick = _maxTick;
-            SetPlaying(false);
-        }
-
-        Render();
-    }
-
-    private void BuildUi()
-    {
-        var root = new VBoxContainer();
-        root.SetAnchorsPreset(LayoutPreset.FullRect);
-        root.AddThemeConstantOverride("separation", 6);
-        AddChild(root);
-
-        var controls = new HBoxContainer();
-        _playButton = new Button { Text = "Pause" };
-        _playButton.Pressed += () => SetPlaying(!_playing);
-        _speedButton = new Button { Text = "1x" };
-        _speedButton.Pressed += CycleSpeed;
-        var restart = new Button { Text = "Restart" };
-        restart.Pressed += () =>
-        {
-            _currentTick = 0;
-            SetPlaying(true);
-            Render();
-        };
-        _tickLabel = new Label { Text = string.Empty };
-        controls.AddChild(_playButton);
-        controls.AddChild(_speedButton);
-        controls.AddChild(restart);
-        controls.AddChild(_tickLabel);
-        root.AddChild(controls);
-
-        _seek = new HSlider { MinValue = 0, MaxValue = _maxTick, Step = 1 };
-        _seek.CustomMinimumSize = new Vector2(0, SeekBarHeight);
-        _seek.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        _seek.ValueChanged += OnSeek;
-        root.AddChild(_seek);
-
-        var main = new HBoxContainer();
-        main.SizeFlagsVertical = SizeFlags.ExpandFill;
-        main.AddThemeConstantOverride("separation", 12);
-
-        var roster = new VBoxContainer();
-        roster.CustomMinimumSize = new Vector2(300, 0);
-        foreach (CombatantSpec spec in _combatants)
-        {
-            roster.AddChild(new Label { Text = $"{spec.Name}  ({spec.Role})" });
-            var bar = new ProgressBar
+            GuildSave? loaded = _saves.Load();
+            if (loaded is not null)
             {
-                MinValue = 0,
-                MaxValue = spec.Stats.MaxHp,
-                Value = spec.Stats.MaxHp,
-                ShowPercentage = false,
-            };
-            bar.CustomMinimumSize = new Vector2(0, 18);
-            _hpBars[spec.Id.Value] = bar;
-            roster.AddChild(bar);
-        }
-
-        main.AddChild(roster);
-
-        _log = new RichTextLabel { ScrollActive = true, ScrollFollowing = true };
-        _log.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        _log.SizeFlagsVertical = SizeFlags.ExpandFill;
-        main.AddChild(_log);
-
-        root.AddChild(main);
-    }
-
-    private void Render()
-    {
-        int tick = (int)_currentTick;
-        var hp = new Dictionary<string, int>(_maxHp);
-        int visible = 0;
-
-        foreach (CombatEvent e in _result.Events)
-        {
-            if (e.Tick.Value > tick)
-            {
-                break; // events are emitted in non-decreasing tick order
+                return loaded;
             }
-
-            ApplyToHp(hp, e);
-            visible++;
         }
-
-        foreach ((string id, ProgressBar bar) in _hpBars)
+        catch (SaveException ex)
         {
-            bar.Value = System.Math.Max(0, hp.TryGetValue(id, out int v) ? v : 0);
+            GD.PushWarning($"save unreadable, starting a fresh guild: {ex.Message}");
         }
 
-        _log.Text = string.Join('\n', _lines.Take(visible));
-        _tickLabel.Text = $"   tick {tick} / {_maxTick}    outcome: {_result.Outcome}";
-
-        _syncingSeek = true;
-        _seek.Value = tick;
-        _syncingSeek = false;
+        // The app supplies the seed + timestamp (Game never reads wall-clock — the determinism guard).
+        ulong seed = (ulong)DateTime.UtcNow.Ticks;
+        string createdAtIso = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
+        return Guilds.CreateStarter("The Founders", seed, createdAtIso);
     }
 
-    private void ApplyToHp(Dictionary<string, int> hp, CombatEvent e)
+    private void ShowRoster()
     {
-        switch (e)
-        {
-            case Damage d when hp.ContainsKey(d.Target.Value):
-                hp[d.Target.Value] -= d.Amount;
-                break;
-            case Heal h when hp.ContainsKey(h.Target.Value):
-                hp[h.Target.Value] = System.Math.Min(_maxHp[h.Target.Value], hp[h.Target.Value] + h.Amount);
-                break;
-            case Death dth when hp.ContainsKey(dth.Victim.Value):
-                hp[dth.Victim.Value] = 0;
-                break;
-        }
+        var view = new RosterView();
+        view.SetAnchorsPreset(LayoutPreset.FullRect);
+        view.Load(_guild, onStartRaid: StartRaid, onSave: SaveGuild);
+        Swap(view);
     }
 
-    private void OnSeek(double value)
+    private void StartRaid()
     {
-        if (_syncingSeek)
-        {
-            return; // programmatic update from Render, not a user drag
-        }
+        var raid = new RaidSetup(_guild.Roster.Select(ToCombatant).ToList());
+        var input = new SimInput(new SeededRng(1), SimConfig.Default, raid, Encounters.Warden);
+        SimResult result = Simulator.SimulateEncounter(input);
+        GD.Print($"raid vs {input.Encounter.Name}: {result.Outcome} (hash {result.Hash()})");
 
-        _currentTick = value;
-        SetPlaying(false);
-        Render();
+        var view = new CombatView();
+        view.SetAnchorsPreset(LayoutPreset.FullRect);
+        view.Load(input, result, onBack: ShowRoster);
+        Swap(view);
     }
 
-    private void CycleSpeed()
+    private void SaveGuild()
     {
-        _speed = _speed switch { 1.0 => 2.0, 2.0 => 4.0, _ => 1.0 };
-        _speedButton.Text = $"{_speed:0}x";
+        _saves.Save(_guild);
+        GD.Print("guild saved");
     }
 
-    private void SetPlaying(bool playing)
+    // Project a persistent roster member into a combat combatant via the class factory.
+    private static CombatantSpec ToCombatant(RaiderRecord raider) =>
+        Roster.CreateRaider(Classes.Registry.Get(raider.ClassId), raider.Id, raider.Name);
+
+    private void Swap(Control view)
     {
-        _playing = playing;
-        _playButton.Text = playing ? "Pause" : "Play";
+        _current?.QueueFree();
+        _current = view;
+        AddChild(view);
     }
 }

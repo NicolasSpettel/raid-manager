@@ -28,7 +28,8 @@ public static class Guilds
         var roster = new List<RaiderRecord>(rosterSize);
         for (int i = 0; i < rosterSize; i++)
         {
-            ClassDef cls = classes[rng.NextInt(classes.Count)];
+            // Seed the roster with one of each class (guarantees role coverage), then fill randomly.
+            ClassDef cls = i < classes.Count ? classes[i] : classes[rng.NextInt(classes.Count)];
             string name = NamePool[rng.NextInt(NamePool.Length)];
             string id = "r:" + (i + 1).ToString("D4", CultureInfo.InvariantCulture);
             roster.Add(new RaiderRecord(id, name, cls.Id));

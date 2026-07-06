@@ -90,9 +90,12 @@ live health; a scrolling event log; the app still prints the byte-identical `cla
 one-engine-two-consumers check). *(Built programmatically; the DS primitives + one RPG `Theme` and the
 2D tactical stage renderer are step 8 / M2 — this is the log + HP view.)*
 
-### Step 10 — Wire the raid night
-New-career flow → roster → assignments → run raid → playback → loot → save, end to end. A headless
-`sim campaign --days 1` runs the same `Game` loop. **Exit:** the DoD floor above holds; tag `v0.1-m1`.
+### Step 10 — Wire the raid night ✅ first cut
+The Godot app is now a **loop, not a demo**: load/create guild → **roster screen** → **Start Raid**
+(project the persistent roster into combatants via the class factory, run the real engine) → **watch the
+playback** → back → **Save** (atomic, to `user://saves/`). Verified headlessly by `RaidNightTests` (a
+generated role-covered guild clears the Warden). *(Remaining for the full M1 floor: assignments + loot,
+the RPG `Theme` + gear screen (step 8), and a `sim campaign` verb; then tag `v0.1-m1`.)*
 
 ## Rules (unchanged from M0)
 - Every step ends green; small commits on step boundaries.
