@@ -7,8 +7,13 @@
 
 ## Definition of done (the strong floor — all must be true)
 
-1. A full raid night is playable from the Godot app: **new career → roster → assignments → run raid
-   → watch the combat-log playback → loot drops → save → reload**, and it survives a reload.
+**Status — met, tagged `v0.1-m1`.** Deep raid *assignments* (CD plans, interrupt rotations) are the one
+piece deferred: they depend on the `tankSwapDebuff` / `interruptibleCast` archetypes (which need
+auras / threat / raid interrupts), so they move to the next combat-depth pass with those. The playable
+loop is: new career → roster → **pick a boss** → run raid → watch playback → gold/XP/loot → save → reload.
+
+1. A full raid night is playable from the Godot app: **new career → roster → pick boss → run raid
+   → watch the combat-log playback → loot drops → save → reload**, and it survives a reload. ✅
 2. The whole thing is **golden-tested**: the raid-night event stream hashes are pinned; determinism
    and drift suites are green; migration fixtures round-trip.
 3. **Adding encounter #2 touches exactly one new file** (one Content registry row) — the proof that

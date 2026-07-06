@@ -7,17 +7,18 @@
 
 ## Project status
 
-**Phase: M1 IN PROGRESS — playable raid-night loop (steps 1–4, 6, 7, 9 + 10 first cut; 5 deferred).** M0 is
-tagged `v0.0-m0`. The Godot app is now a **loop, not a demo**: load/create a guild → **roster screen** →
-**Start Raid** (project the persistent roster into combatants via the class factory, run the real engine) →
-**watch the combat playback** (HP bars, log, play/pause/speed/seek) → back → **Save** (atomic, to
-`user://saves/`). Raids now have **consequences**: a win awards gold + XP, raiders **level up**, the boss **drops gear** that
-auto-equips (folding into combat stats so the raid gets stronger), and the outcome is folded into a
-`RaidSummary` and auto-saved — a real campaign loop with progression. Under it: a deterministic, data-driven
-combat engine and a versioned `GuildSave` (save chained through real **v1 → v2 → v3** migrations).
-`dotnet build -warnaserror` + `dotnet test` green (53 tests). Plan: **[docs/m1-build-plan.md](docs/m1-build-plan.md)** — remaining for the
-M1 floor: the RPG-textured `Theme` + gear screen (8), assignments/loot, a `sim campaign` verb, then tag
-`v0.1-m1`. Positions (5) deferred.
+**Phase: M1 VERTICAL SLICE COMPLETE — tagged `v0.1-m1`.** M0 is tagged `v0.0-m0`. The Godot app is a full
+**management loop**: load/create a guild → **roster screen** (levels + gear power, last-raid banner) →
+**pick a boss** (Warden or Sentinel) → **run the real engine** → **watch the combat playback** (HP bars,
+log, play/pause/speed/seek) → back → **Save** (atomic, `user://saves/`). Raids have **consequences**: a win
+awards gold + XP, raiders **level up**, the boss **drops gear** that auto-equips (folding into combat stats),
+and the outcome is folded into a `RaidSummary` and auto-saved — a real campaign with progression. Headless,
+`sim campaign --raids N` drives the **same loop** for balance. Under it: a deterministic, data-driven combat
+engine and a versioned `GuildSave` (chained through real **v1 → v2 → v3** migrations); a first-cut carved-stone
+theme with a procedural stone-textured backdrop. `dotnet build -warnaserror` + `dotnet test` green (55 tests).
+**Next (post-slice):** the authored **textured `Theme`** + display font (the gritty look), deep raid
+**assignments** (with the deferred `tankSwapDebuff`/`interruptibleCast` archetypes), a gear screen, then M2
+(the 2D tactical stage renderer). Plan: **[docs/m1-build-plan.md](docs/m1-build-plan.md)**. Positions (5) deferred.
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)
 → [docs/BLUEPRINT.md](docs/BLUEPRINT.md) §4 (repo) & §10 (conventions) → [docs/engine-spec.md](docs/engine-spec.md)
