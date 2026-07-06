@@ -21,11 +21,11 @@ internal static class SimCli
 
         if (args is ["campaign", ..])
         {
-            return RunCampaign(ParseInt(args, "--raids", 5), ParseSeed(args));
+            return RunCampaign(ParseInt(args, "--raids", 5), ParseSeed(args), ParseString(args, "--boss", "warden"));
         }
 
         Console.Error.WriteLine("usage: sim run <dummy|trio|caster|raid|warden|classraid> --seed <N>");
-        Console.Error.WriteLine("       sim campaign --raids <N> --seed <N>");
+        Console.Error.WriteLine("       sim campaign --raids <N> --seed <N> --boss <warden|sentinel|ashen_king>");
         return 1;
     }
 
@@ -46,12 +46,13 @@ internal static class SimCli
         return 0;
     }
 
-    private static int RunCampaign(int raids, ulong seed)
+    private static int RunCampaign(int raids, ulong seed, string bossId)
     {
+        EncounterDef encounter = Encounters.All.FirstOrDefault(e => e.Id == bossId) ?? Encounters.Warden;
         GuildSave start = Guilds.CreateStarter("Campaign Guild", seed, "2026-01-01T00:00:00Z");
-        Console.WriteLine($"== Campaign: {start.Roster.Count} raiders vs {Encounters.Warden.Name}, {raids} raids, seed {seed} ==");
+        Console.WriteLine($"== Campaign: {start.Roster.Count} raiders vs {encounter.Name}, {raids} raids, seed {seed} ==");
 
-        CampaignResult run = Campaign.Run(start, raids, seed, Encounters.Warden);
+        CampaignResult run = Campaign.Run(start, raids, seed, encounter);
 
         int raidNumber = 0;
         foreach (RaidSummary summary in run.Raids)
@@ -72,6 +73,19 @@ internal static class SimCli
     }
 
     private static ulong ParseSeed(string[] args) => (ulong)ParseInt(args, "--seed", 1);
+
+    private static string ParseString(string[] args, string flag, string fallback)
+    {
+        for (int i = 0; i < args.Length - 1; i++)
+        {
+            if (args[i] == flag)
+            {
+                return args[i + 1];
+            }
+        }
+
+        return fallback;
+    }
 
     private static int ParseInt(string[] args, string flag, int fallback)
     {
