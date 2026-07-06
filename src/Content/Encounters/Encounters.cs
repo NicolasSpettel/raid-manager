@@ -30,6 +30,10 @@ public static class Encounters
         {
             new MechanicInstance("sentinel.slam", MechanicArchetype.TankBuster, MechanicSchedule.Repeating(20, 25), 60),
             new MechanicInstance("sentinel.pulse", MechanicArchetype.SpreadDamage, MechanicSchedule.Repeating(35, 35), 18),
+            // A ground hazard the raid must spread out of — the Sentinel is the spatial showcase (M2 step 2).
+            new MechanicInstance(
+                "sentinel.scorched_earth", MechanicArchetype.VoidZone, MechanicSchedule.Repeating(30, 40),
+                Amount: 40, Radius: 2600, DurationTicks: 40, TickIntervalTicks: 10),
         });
 
     // A tier-2 boss showcasing the aura mechanics: a stacking tank debuff (the tank takes escalating

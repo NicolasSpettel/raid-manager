@@ -28,7 +28,7 @@ public static class Campaign
         for (int i = 1; i <= raids; i++)
         {
             ulong raidSeed = seed + (ulong)i;
-            var setup = new RaidSetup(guild.Roster.Select(Warband.ToCombatant).ToList());
+            var setup = new RaidSetup(Formation.Place(guild.Roster.Select(Warband.ToCombatant).ToList()));
             SimResult result = Simulator.SimulateEncounter(
                 new SimInput(new SeededRng(raidSeed), SimConfig.Default, setup, encounter));
 

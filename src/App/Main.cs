@@ -104,7 +104,7 @@ public partial class Main : Control
     private void StartRaid(EncounterDef encounter)
     {
         EncounterDef scaled = Difficulties.Scale(encounter, _difficulty);
-        var raid = new RaidSetup(_guild.Roster.Select(ToCombatant).ToList());
+        var raid = new RaidSetup(Formation.Place(_guild.Roster.Select(ToCombatant).ToList()));
         ulong seed = (ulong)DateTime.UtcNow.Ticks; // a fresh fight each time
         var input = new SimInput(new SeededRng(seed), SimConfig.Default, raid, scaled);
         SimResult result = Simulator.SimulateEncounter(input);
