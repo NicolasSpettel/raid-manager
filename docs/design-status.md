@@ -20,7 +20,7 @@
 | Architecture: engine, Godot+C# stack, boundaries, testing, Principle 0 | BLUEPRINT, ADRs, testing-strategy |
 | Gear frame: slots, ilvl bands, binding, formula scaling, tier-set rotation | GDD §9/§8c |
 | Professions ladder + material tiering | GDD §9d |
-| Season/calendar structure + weekly lockout + history retention | GDD §5 |
+| Season/calendar structure + weekly lockout + history retention | GDD §5 — **race BUILT** (`SeasonRace`): the world progresses the raid in parallel to a leaderboard, calibrated to the locked pacing (elite ~wk3, #100 ~wk13). Player-facing calendar/week loop + Chronicle still to come. |
 
 ## THIN — direction locked, needs a real design pass before building
 

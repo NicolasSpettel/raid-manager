@@ -37,11 +37,41 @@ internal static class SimCli
             return RunWorld(ParseSeed(args), ParseInt(args, "--guilds", WorldConfig.Default.GuildCount));
         }
 
+        if (args is ["season", ..])
+        {
+            return RunSeason(ParseSeed(args), ParseInt(args, "--weeks", 16));
+        }
+
         Console.Error.WriteLine("usage: sim run <dummy|trio|caster|raid|warden|spatial|classraid> --seed <N>");
         Console.Error.WriteLine("       sim campaign --raids <N> --seed <N> --boss <id> --difficulty <normal|heroic|mythic>");
         Console.Error.WriteLine("       sim balance --raids <N> --seed <N>   (win-rate matrix over every boss x difficulty)");
         Console.Error.WriteLine("       sim world --seed <N> --guilds <N>    (generate the living world, print distributions + hash)");
+        Console.Error.WriteLine("       sim season --seed <N> --weeks <N>    (race the world through the season raid, print the leaderboard)");
         return 1;
+    }
+
+    // Race the whole generated world through the season raid and print the global leaderboard + pacing.
+    private static int RunSeason(ulong seed, int weeks)
+    {
+        World world = WorldGen.Generate(seed);
+        SeasonResult result = SeasonRace.Run(world, SeasonRaid.Default, weeks);
+
+        Console.WriteLine($"== Season race: {result.Standings.Count} guilds, raid \"{result.Raid.Name}\" ({result.Raid.Bosses.Count} bosses), {weeks} weeks ==");
+        Console.WriteLine("  #  guild                         tier          str  bosses  cleared");
+        int rank = 0;
+        foreach (GuildProgress g in result.Standings.Take(12))
+        {
+            rank++;
+            string cleared = g.ClearedWeek is { } w ? $"week {w}" : "—";
+            Console.WriteLine($"{rank,3}  {g.Name,-28} {g.Tier,-12} {g.Strength,4} {g.BossesDown,6}/{result.Raid.Bosses.Count}  {cleared}");
+        }
+
+        var cleared100 = result.Standings.Where(g => g.ClearedWeek is not null).ToList();
+        GuildProgress? first = cleared100.FirstOrDefault();
+        int hundredth = result.Standings.Count >= 100 ? (result.Standings[99].ClearedWeek ?? 0) : 0;
+        Console.WriteLine($"\npacing: first clear week {(first?.ClearedWeek?.ToString(CultureInfo.InvariantCulture) ?? "—")}; " +
+            $"{cleared100.Count} guilds cleared in {weeks} weeks; rank #100 cleared {(hundredth > 0 ? $"week {hundredth}" : "not yet")}");
+        return 0;
     }
 
     // Generate a deterministic world and print its shape: guilds per tier, star curve per tier, role coverage.
