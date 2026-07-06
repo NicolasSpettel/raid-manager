@@ -7,14 +7,15 @@
 
 ## Project status
 
-**Phase: M0 FOUNDATION BUILT (green).** The skeleton, deterministic engine core, quality gates,
-and golden/determinism/boundary tests all exist and pass. `dotnet build -warnaserror` + `dotnet test`
-are green; the Godot `App` replays the Sim's **byte-identical** event stream (`hash=bcdf32113982c369`).
-Stack verified in situ: .NET 8, Godot 4.7 .NET, godot-mcp. **Next: M1 — the vertical slice**
-([docs/BLUEPRINT.md](docs/BLUEPRINT.md) §11); M0's step-by-step is preserved in
-**[docs/m0-build-plan.md](docs/m0-build-plan.md)**.
+**Phase: M1 IN PROGRESS — the vertical slice (step 1 of 10 done).** M0 foundation is complete and
+tagged `v0.0-m0`. **M1 step 1 — the N-combatant engine core — is in:** many combatants, two sides,
+a scheduled `ActionQueue`, swing-timer auto-attacks, and `Kill`/`Wipe`/`Timeout` outcomes.
+`dotnet build -warnaserror` + `dotnet test` are green (14 tests); the Godot `App` replays the Sim's
+**byte-identical** stream (`hash=ac330b5fa219abde`). The plan is
+**[docs/m1-build-plan.md](docs/m1-build-plan.md)** — next is step 2 (abilities/casts + the `Content`
+registry).
 
-**If you are a coding session, read in this order:** this file → [docs/m0-build-plan.md](docs/m0-build-plan.md)
+**If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)
 → [docs/BLUEPRINT.md](docs/BLUEPRINT.md) §4 (repo) & §10 (conventions) → [docs/engine-spec.md](docs/engine-spec.md)
 → [docs/testing-strategy.md](docs/testing-strategy.md). Build in `E:\raid-manager\`. Every step ends
 green; determinism and boundaries are enforced from the first commit.
@@ -37,7 +38,8 @@ PC-first, standalone executable; optional Steam stats/leaderboard upload only.
 | Doc | Contents | Read when |
 |---|---|---|
 | **[docs/game-design.md](docs/game-design.md)** | **The game wiki**: every system, player journey from opening screen to season end, all design decisions + open questions. THE source of truth for *what we're building*. | Designing/adding any feature |
-| **[docs/m0-build-plan.md](docs/m0-build-plan.md)** | **The first coding session's step-by-step**: solution structure, build order, quality gates, definition of done | Starting the build (M0) |
+| **[docs/m0-build-plan.md](docs/m0-build-plan.md)** | **M0's step-by-step** (done): solution structure, build order, quality gates, definition of done | Reference: how the floor was laid |
+| **[docs/m1-build-plan.md](docs/m1-build-plan.md)** | **The vertical-slice plan**: 10 steps from the N-combatant engine → a playable, golden-tested raid night, each a green commit boundary | Building M1 |
 | [docs/design-status.md](docs/design-status.md) | Per-system maturity audit: what's build-ready (SOLID), what needs a design pass (THIN), what's blocked on the dev (DECISION) | Deciding what to work on next |
 | [docs/BLUEPRINT.md](docs/BLUEPRINT.md) | Architecture spine: pillars, module structure, sim core, milestones. THE source of truth for *how it's structured*. | Any technical work |
 | [docs/engine-spec.md](docs/engine-spec.md) | Combat sim: tick model, entity model, event stream union, mechanic archetypes, perf budget | Engine/combat work |
@@ -114,7 +116,7 @@ M0 foundation built and green. Each module gets one line: what it owns, what it 
 
 | Module | Owns (M0 state) | Must not know about |
 |---|---|---|
-| `src/Engine` | Deterministic sim core: `SeededRng` (PCG-XSH-RR), `Tick`/`TimeModel`, `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `DummyFight` fixture | Content · Game · App · Godot — references nothing in the solution |
+| `src/Engine` | Deterministic sim core: `SeededRng` (PCG-XSH-RR), `Tick`/`TimeModel`, the combatant model (`CombatantSpec`/`Combatant`/`StatBlock`, sides/kinds/roles), scheduled `ActionQueue`, `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` (dummy, trio) | Content · Game · App · Godot — references nothing in the solution |
 | `src/Content` | Registries/templates (namespace anchor only in M0) | Game · App · Godot |
 | `src/Game` | Guild/roster/economy/saves/day-loop (namespace anchor only in M0) | App · Godot |
 | `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |

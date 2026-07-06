@@ -1,20 +1,26 @@
 using System.Globalization;
 using Engine;
 
-// Sim — the headless harness. The M0 verb is `run dummy --seed <N>`: it runs the real
-// Engine.SimulateEncounter and prints the event log + the stream hash. This is both the headless
-// proof of the engine and the future home of the golden/probe/campaign verbs (testing-strategy §5).
+// Sim — the headless harness. The M1 verb is `run <fixture> --seed <N>` (fixtures: dummy, trio):
+// it runs the real Engine.SimulateEncounter and prints the event log + the stream hash. This is both
+// the headless proof of the engine and the future home of golden/probe/campaign verbs.
 return SimCli.Run(args);
 
 internal static class SimCli
 {
     public static int Run(string[] args)
     {
-        if (args is ["run", "dummy", ..])
+        if (args is ["run", var fixture, ..])
         {
             ulong seed = ParseSeed(args);
-            SimResult result = DummyFight.Run(seed);
+            SimInput? input = Fixtures.ByName(fixture, seed);
+            if (input is null)
+            {
+                Console.Error.WriteLine($"unknown fixture '{fixture}' (try: dummy, trio)");
+                return 1;
+            }
 
+            SimResult result = Simulator.SimulateEncounter(input);
             Console.WriteLine(EventStream.Serialize(result.Events).TrimEnd('\n'));
             Console.WriteLine(
                 $"outcome={result.Outcome} seed={result.Seed} engine=v{result.EngineVersion} schema=v{result.EventSchemaVersion}");
@@ -22,7 +28,7 @@ internal static class SimCli
             return 0;
         }
 
-        Console.Error.WriteLine("usage: sim run dummy --seed <N>");
+        Console.Error.WriteLine("usage: sim run <dummy|trio> --seed <N>");
         return 1;
     }
 

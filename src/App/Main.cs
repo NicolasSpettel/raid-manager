@@ -12,7 +12,7 @@ public partial class Main : Control
 {
     public override void _Ready()
     {
-        SimResult result = DummyFight.Run(1);
+        SimResult result = Simulator.SimulateEncounter(Fixtures.Dummy(1));
         string log = EventStream.Serialize(result.Events).TrimEnd('\n');
         string hash = result.Hash();
 

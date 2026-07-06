@@ -11,16 +11,22 @@ namespace Engine.Tests;
 public class DeterminismTests
 {
     [Fact]
-    public void SameSeed_ProducesIdenticalStream()
+    public void SameSeed_ProducesIdenticalStream_Dummy()
     {
-        Assert.Equal(DummyFight.Run(1).Hash(), DummyFight.Run(1).Hash());
+        Assert.Equal(Hash(Fixtures.Dummy(1)), Hash(Fixtures.Dummy(1)));
+    }
+
+    [Fact]
+    public void SameSeed_ProducesIdenticalStream_Trio()
+    {
+        Assert.Equal(Hash(Fixtures.Trio(1)), Hash(Fixtures.Trio(1)));
     }
 
     [Fact]
     public void DifferentSeeds_ProduceDistinctStreams()
     {
         var hashes = Enumerable.Range(1, 10)
-            .Select(seed => DummyFight.Run((ulong)seed).Hash())
+            .Select(seed => Hash(Fixtures.Trio((ulong)seed)))
             .ToList();
 
         Assert.Equal(hashes.Count, hashes.Distinct().Count());
@@ -48,4 +54,6 @@ public class DeterminismTests
             Assert.InRange(rng.NextInt(3, 9), 3, 8);
         }
     }
+
+    private static string Hash(SimInput input) => Simulator.SimulateEncounter(input).Hash();
 }

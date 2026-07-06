@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Engine;
 
 /// <summary>Everything the engine needs to simulate one encounter. The rng is required (no fallback).</summary>
-public sealed record SimInput(SeededRng Rng, SimConfig Config, EncounterDef Encounter);
+public sealed record SimInput(SeededRng Rng, SimConfig Config, RaidSetup Raid, EncounterDef Encounter);
 
 /// <summary>Global knobs for a single simulation.</summary>
 public sealed record SimConfig(int MaxTicks)
@@ -12,11 +12,14 @@ public sealed record SimConfig(int MaxTicks)
     public static SimConfig Default => new(TimeModel.SecondsToTicks(60));
 }
 
+/// <summary>The raid side: the combatants the player fields (plus, later, assignments).</summary>
+public sealed record RaidSetup(IReadOnlyList<CombatantSpec> Raiders);
+
 /// <summary>
-/// A minimal encounter definition. In M0 this is only the dummy target's health; the full,
-/// registry-driven encounter model (phases, mechanic archetypes) arrives with M1 (engine-spec §8).
+/// The enemy content. In M1 step 1 this is just id/name + the enemy spawns; phases, timeline, and
+/// mechanic archetypes arrive at step 4 (engine-spec §8).
 /// </summary>
-public sealed record EncounterDef(string Id, int TargetHp);
+public sealed record EncounterDef(string Id, string Name, IReadOnlyList<CombatantSpec> Enemies);
 
 /// <summary>The engine's result: the event stream plus provenance for versioned, golden replay.</summary>
 public sealed record SimResult(

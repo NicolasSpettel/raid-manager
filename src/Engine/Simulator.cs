@@ -17,48 +17,95 @@ public static class Simulator
     {
         ArgumentNullException.ThrowIfNull(input);
 
-        var ctx = new SimContext(input.Rng);
-        EncounterOutcome outcome = RunDummyFight(ctx, input.Config, input.Encounter);
+        var ctx = new SimContext(input.Rng, input.Config);
+        SpawnSide(ctx, input.Raid.Raiders);
+        SpawnSide(ctx, input.Encounter.Enemies);
 
-        return new SimResult(
-            ctx.Events,
-            outcome,
-            input.Rng.Seed,
-            EngineVersion,
-            EventSchemaVersion);
+        ctx.Emit(new EncounterStart(Tick.Zero, input.Encounter.Id));
+
+        foreach (Combatant c in ctx.SpawnOrder)
+        {
+            ScheduleNextSwing(ctx, c, fromTick: 0);
+        }
+
+        EncounterOutcome outcome = RunLoop(ctx, input.Config);
+        return new SimResult(ctx.Events, outcome, input.Rng.Seed, EngineVersion, EventSchemaVersion);
     }
 
-    // M0's only "content" is this hand-built dummy fight — a test fixture, not shipped content.
-    // One attacker swings on a fixed cadence for seeded, variable damage until the target dies.
-    // The damage roll uses the rng so different seeds produce genuinely different streams.
-    private static EncounterOutcome RunDummyFight(SimContext ctx, SimConfig config, EncounterDef encounter)
+    private static void SpawnSide(SimContext ctx, IReadOnlyList<CombatantSpec> specs)
     {
-        const int swingEveryTicks = 5;
-        const int baseDamage = 8;
-        const int damageSpread = 5; // adds 0..4 per swing
-
-        var attacker = new CombatantId(1);
-        var target = new CombatantId(2);
-        int targetHp = encounter.TargetHp;
-
-        ctx.Emit(new EncounterStart(Tick.Zero, encounter.Id));
-
-        for (int t = swingEveryTicks; t <= config.MaxTicks; t += swingEveryTicks)
+        foreach (CombatantSpec spec in specs)
         {
-            var tick = new Tick(t);
-            int damage = baseDamage + ctx.Rng.NextInt(damageSpread);
-            targetHp -= damage;
-            ctx.Emit(new Damage(tick, attacker, target, damage));
+            ctx.Spawn(new Combatant(spec));
+        }
+    }
 
-            if (targetHp <= 0)
+    // Process scheduled actions in (tick, seq) order until a side is wiped or the tick budget runs out.
+    private static EncounterOutcome RunLoop(SimContext ctx, SimConfig config)
+    {
+        while (ctx.Queue.TryPeekTick(out int nextTick))
+        {
+            if (nextTick > config.MaxTicks)
             {
-                ctx.Emit(new Death(tick, target));
-                ctx.Emit(new EncounterEnd(tick, EncounterOutcome.Kill));
-                return EncounterOutcome.Kill;
+                break;
+            }
+
+            ctx.Queue.TryDequeue(out ScheduledAction action, out int tick);
+            ResolveSwing(ctx, action.Actor, tick);
+
+            if (!ctx.AnyAlive(Side.Enemy))
+            {
+                return End(ctx, tick, EncounterOutcome.Kill);
+            }
+
+            if (!ctx.AnyAlive(Side.Raid))
+            {
+                return End(ctx, tick, EncounterOutcome.Wipe);
             }
         }
 
-        ctx.Emit(new EncounterEnd(new Tick(config.MaxTicks), EncounterOutcome.Timeout));
-        return EncounterOutcome.Timeout;
+        return End(ctx, config.MaxTicks, EncounterOutcome.Timeout);
+    }
+
+    private static void ResolveSwing(SimContext ctx, CombatantId actorId, int tick)
+    {
+        Combatant? actor = ctx.Get(actorId);
+        if (actor is null || !actor.IsAlive)
+        {
+            return; // dead actors don't swing and don't reschedule — they drain out of the queue
+        }
+
+        Combatant? target = ctx.PickTarget(actor);
+        if (target is null)
+        {
+            return;
+        }
+
+        StatBlock stats = actor.Spec.Stats;
+        int damage = stats.AttackDamage + (stats.AttackVariance > 0 ? ctx.Rng.NextInt(stats.AttackVariance) : 0);
+        target.Hp -= damage;
+        ctx.Emit(new Damage(new Tick(tick), actor.Id, target.Id, damage));
+
+        if (!target.IsAlive)
+        {
+            ctx.Emit(new Death(new Tick(tick), target.Id));
+        }
+
+        ScheduleNextSwing(ctx, actor, fromTick: tick);
+    }
+
+    private static void ScheduleNextSwing(SimContext ctx, Combatant c, int fromTick)
+    {
+        int interval = c.Spec.Stats.SwingIntervalTicks;
+        if (interval > 0)
+        {
+            ctx.Queue.Schedule(fromTick + interval, new ScheduledAction(ActionKind.Swing, c.Id));
+        }
+    }
+
+    private static EncounterOutcome End(SimContext ctx, int tick, EncounterOutcome outcome)
+    {
+        ctx.Emit(new EncounterEnd(new Tick(tick), outcome));
+        return outcome;
     }
 }
