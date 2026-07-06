@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Content;
 using Engine;
 
 namespace Game;
 
 /// <summary>
 /// Turns a finished raid into career progress: folds the combat event stream into per-raider
-/// contributions, awards gold and XP (levelling up), and appends a <see cref="RaidSummary"/> — the
-/// "career history is a fold, not bookkeeping" mechanism (BLUEPRINT §7, save-format.md). Pure: returns
-/// a new <see cref="GuildSave"/>, mutating nothing.
+/// contributions, awards gold and XP (levelling up), drops loot on a win, and appends a
+/// <see cref="RaidSummary"/> — the "career history is a fold" mechanism (BLUEPRINT §7, save-format.md).
+/// Pure: returns a new <see cref="GuildSave"/>, mutating nothing.
 /// </summary>
 public static class RaidResolver
 {
@@ -18,7 +19,8 @@ public static class RaidResolver
     private const int WinBaseXp = 100;
     private const int WipeBaseXp = 40;
 
-    public static (GuildSave Guild, RaidSummary Summary) Resolve(GuildSave guild, SimResult result, EncounterDef encounter)
+    public static (GuildSave Guild, RaidSummary Summary) Resolve(
+        GuildSave guild, SimResult result, EncounterDef encounter, ulong lootSeed)
     {
         ArgumentNullException.ThrowIfNull(guild);
         ArgumentNullException.ThrowIfNull(result);
@@ -63,8 +65,10 @@ public static class RaidResolver
             newRoster.Add(raider with { Level = level, Xp = xp });
         }
 
+        string? lootDropped = win ? DropLoot(newRoster, encounter.Id, lootSeed) : null;
+
         int duration = result.Events.Count == 0 ? 0 : result.Events[^1].Tick.Value;
-        var summary = new RaidSummary(encounter.Id, result.Outcome.ToString(), duration, gold, contributions);
+        var summary = new RaidSummary(encounter.Id, result.Outcome.ToString(), duration, gold, contributions, lootDropped);
 
         GuildSave updated = guild with
         {
@@ -74,6 +78,42 @@ public static class RaidResolver
         };
 
         return (updated, summary);
+    }
+
+    // Roll one item from the encounter's loot table and equip it to the neediest raider it upgrades.
+    private static string? DropLoot(List<RaiderRecord> roster, string encounterId, ulong seed)
+    {
+        IReadOnlyList<ItemDef> pool = Loot.For(encounterId);
+        if (pool.Count == 0)
+        {
+            return null;
+        }
+
+        ItemDef drop = pool[new SeededRng(seed).NextInt(pool.Count)];
+
+        int recipient = -1;
+        int lowestPower = int.MaxValue;
+        for (int i = 0; i < roster.Count; i++)
+        {
+            bool isUpgrade = !ReferenceEquals(Warband.EquipIfUpgrade(roster[i], drop), roster[i]);
+            if (isUpgrade)
+            {
+                int power = Warband.GearPower(roster[i]);
+                if (power < lowestPower)
+                {
+                    lowestPower = power;
+                    recipient = i;
+                }
+            }
+        }
+
+        if (recipient < 0)
+        {
+            return null; // nobody benefits
+        }
+
+        roster[recipient] = Warband.EquipIfUpgrade(roster[recipient], drop);
+        return drop.Id;
     }
 
     private static (int Level, int Xp) ApplyXp(int level, int xp, int gain)

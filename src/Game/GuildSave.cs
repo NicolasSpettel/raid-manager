@@ -22,7 +22,13 @@ public sealed record GuildInfo(string Name, int Reputation);
 /// A persistent roster member. Distinct from the engine's combat <c>CombatantSpec</c>: this is the
 /// career entity (identity + class + progression); it is projected into a combatant when a raid runs.
 /// </summary>
-public sealed record RaiderRecord(string Id, string Name, string ClassId, int Level = 1, int Xp = 0);
+public sealed record RaiderRecord(
+    string Id,
+    string Name,
+    string ClassId,
+    int Level = 1,
+    int Xp = 0,
+    IReadOnlyList<string>? Equipped = null);
 
 /// <summary>Guild finances (M1: gold only).</summary>
 public sealed record Economy(int Gold);
@@ -36,7 +42,8 @@ public sealed record RaidSummary(
     string Outcome,
     int DurationTicks,
     int GoldAwarded,
-    IReadOnlyList<RaiderContribution> Contributions);
+    IReadOnlyList<RaiderContribution> Contributions,
+    string? LootDropped = null);
 
 /// <summary>What one raider did in a raid, folded from the event stream.</summary>
 public sealed record RaiderContribution(string RaiderId, int DamageDone, int HealingDone, bool Died);

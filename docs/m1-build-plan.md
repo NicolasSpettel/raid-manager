@@ -98,9 +98,9 @@ The Godot app is now a **loop, not a demo**: load/create guild → **roster scre
 (project the persistent roster into combatants via the class factory, run the real engine) → **watch the
 playback** → back → **Save** (atomic, to `user://saves/`). Verified headlessly by `RaidNightTests` (a
 generated role-covered guild clears the Warden). Raids now **resolve into consequences** — `RaidResolver`
-folds the fight into gold + XP/levels + a saved `RaidSummary` (save migrated to v2), so the campaign grows.
-*(Remaining for the full M1 floor: gear/loot items + raid assignments, the textured `Theme` + gear screen
-(step 8), and a `sim campaign` verb; then tag `v0.1-m1`.)*
+folds the fight into gold + XP/levels + **loot drops** + a saved `RaidSummary` (save chained to v3), so the
+campaign grows and raiders gear up. *(Remaining for the full M1 floor: raid assignments, the textured
+`Theme` + gear screen (step 8), and a `sim campaign` verb; then tag `v0.1-m1`.)*
 
 ## Rules (unchanged from M0)
 - Every step ends green; small commits on step boundaries.

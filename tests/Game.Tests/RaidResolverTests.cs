@@ -19,13 +19,15 @@ public class RaidResolverTests
         SimResult result = Fight(guild, seed: 1);
         Assert.Equal(EncounterOutcome.Kill, result.Outcome);
 
-        (GuildSave updated, RaidSummary summary) = RaidResolver.Resolve(guild, result, Encounters.Warden);
+        (GuildSave updated, RaidSummary summary) = RaidResolver.Resolve(guild, result, Encounters.Warden, lootSeed: 1);
 
         Assert.True(updated.Economy.Gold > guild.Economy.Gold);
         Assert.Single(updated.History);
         Assert.Equal("Kill", summary.Outcome);
-        Assert.Contains(updated.Roster, r => r.Level > 1);      // a win levels raiders up
-        Assert.Empty(guild.History);                            // input guild not mutated
+        Assert.Contains(updated.Roster, r => r.Level > 1);            // a win levels raiders up
+        Assert.NotNull(summary.LootDropped);                         // a win drops loot
+        Assert.Contains(updated.Roster, r => r.Equipped is { Count: > 0 }); // and it gets equipped
+        Assert.Empty(guild.History);                                 // input guild not mutated
     }
 
     [Fact]
@@ -34,7 +36,7 @@ public class RaidResolverTests
         GuildSave guild = Guilds.CreateStarter("Test", 2, "2026-01-01T00:00:00Z", rosterSize: 8);
         SimResult result = Fight(guild, seed: 1);
 
-        (_, RaidSummary summary) = RaidResolver.Resolve(guild, result, Encounters.Warden);
+        (_, RaidSummary summary) = RaidResolver.Resolve(guild, result, Encounters.Warden, lootSeed: 1);
 
         Assert.Equal(guild.Roster.Count, summary.Contributions.Count);
         Assert.Contains(summary.Contributions, c => c.DamageDone > 0);  // DPS dealt damage
@@ -43,9 +45,7 @@ public class RaidResolverTests
 
     private static SimResult Fight(GuildSave guild, ulong seed)
     {
-        var raid = new RaidSetup(guild.Roster
-            .Select(r => Roster.CreateRaider(Classes.Registry.Get(r.ClassId), r.Id, r.Name))
-            .ToList());
+        var raid = new RaidSetup(guild.Roster.Select(Warband.ToCombatant).ToList());
         return Simulator.SimulateEncounter(new SimInput(
             new SeededRng(seed), SimConfig.Default, raid, Encounters.Warden));
     }

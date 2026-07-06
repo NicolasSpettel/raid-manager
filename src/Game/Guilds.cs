@@ -32,7 +32,7 @@ public static class Guilds
             ClassDef cls = i < classes.Count ? classes[i] : classes[rng.NextInt(classes.Count)];
             string name = NamePool[rng.NextInt(NamePool.Length)];
             string id = "r:" + (i + 1).ToString("D4", CultureInfo.InvariantCulture);
-            roster.Add(new RaiderRecord(id, name, cls.Id));
+            roster.Add(new RaiderRecord(id, name, cls.Id, Equipped: new List<string>()));
         }
 
         return new GuildSave(

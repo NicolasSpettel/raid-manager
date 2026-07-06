@@ -18,9 +18,7 @@ public class RaidNightTests
     {
         GuildSave guild = Guilds.CreateStarter("Test", 1, "2026-01-01T00:00:00Z", rosterSize: 8);
 
-        var raid = new RaidSetup(guild.Roster
-            .Select(r => Roster.CreateRaider(Classes.Registry.Get(r.ClassId), r.Id, r.Name))
-            .ToList());
+        var raid = new RaidSetup(guild.Roster.Select(Warband.ToCombatant).ToList());
 
         SimResult result = Simulator.SimulateEncounter(new SimInput(
             new SeededRng(1), SimConfig.Default, raid, Encounters.Warden));

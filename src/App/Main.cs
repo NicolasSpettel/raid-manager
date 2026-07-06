@@ -73,7 +73,7 @@ public partial class Main : Control
         var input = new SimInput(new SeededRng(seed), SimConfig.Default, raid, Encounters.Warden);
         SimResult result = Simulator.SimulateEncounter(input);
 
-        (GuildSave updated, RaidSummary summary) = RaidResolver.Resolve(_guild, result, input.Encounter);
+        (GuildSave updated, RaidSummary summary) = RaidResolver.Resolve(_guild, result, input.Encounter, seed);
         _guild = updated;
         _saves.Save(_guild); // auto-save the outcome
         GD.Print($"raid {result.Outcome}: +{summary.GoldAwarded} gold (now {_guild.Economy.Gold}); saved");
@@ -90,9 +90,8 @@ public partial class Main : Control
         GD.Print("guild saved");
     }
 
-    // Project a persistent roster member into a combat combatant via the class factory.
-    private static CombatantSpec ToCombatant(RaiderRecord raider) =>
-        Roster.CreateRaider(Classes.Registry.Get(raider.ClassId), raider.Id, raider.Name);
+    // Project a persistent roster member into a combat combatant (class kit + base stats + equipped gear).
+    private static CombatantSpec ToCombatant(RaiderRecord raider) => Warband.ToCombatant(raider);
 
     private void Swap(Control view)
     {

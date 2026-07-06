@@ -53,7 +53,10 @@ public partial class RosterView : Control
         foreach (RaiderRecord raider in guild.Roster)
         {
             ClassDef cls = Classes.Registry.Get(raider.ClassId);
-            list.AddChild(new Label { Text = $"    {raider.Name}       {cls.Name} ({cls.Role})       Lv {raider.Level}" });
+            list.AddChild(new Label
+            {
+                Text = $"    {raider.Name}       {cls.Name} ({cls.Role})       Lv {raider.Level}       Gear {Warband.GearPower(raider)}",
+            });
         }
 
         var buttons = new HBoxContainer();

@@ -11,11 +11,11 @@
 tagged `v0.0-m0`. The Godot app is now a **loop, not a demo**: load/create a guild → **roster screen** →
 **Start Raid** (project the persistent roster into combatants via the class factory, run the real engine) →
 **watch the combat playback** (HP bars, log, play/pause/speed/seek) → back → **Save** (atomic, to
-`user://saves/`). Raids now have **consequences**: a win awards gold + XP, raiders **level up**, and the outcome is folded
-into a `RaidSummary` and auto-saved — a real campaign loop. Under it: a deterministic, data-driven combat
-engine (classes / abilities / healing / resources / boss mechanics + phases) and a versioned `GuildSave`
-(save migrated **v1 → v2**, exercising the migration registry for real). `dotnet build -warnaserror` +
-`dotnet test` green (47 tests). Plan: **[docs/m1-build-plan.md](docs/m1-build-plan.md)** — remaining for the
+`user://saves/`). Raids now have **consequences**: a win awards gold + XP, raiders **level up**, the boss **drops gear** that
+auto-equips (folding into combat stats so the raid gets stronger), and the outcome is folded into a
+`RaidSummary` and auto-saved — a real campaign loop with progression. Under it: a deterministic, data-driven
+combat engine and a versioned `GuildSave` (save chained through real **v1 → v2 → v3** migrations).
+`dotnet build -warnaserror` + `dotnet test` green (53 tests). Plan: **[docs/m1-build-plan.md](docs/m1-build-plan.md)** — remaining for the
 M1 floor: the RPG-textured `Theme` + gear screen (8), assignments/loot, a `sim campaign` verb, then tag
 `v0.1-m1`. Positions (5) deferred.
 
@@ -121,8 +121,8 @@ M0 foundation built and green. Each module gets one line: what it owns, what it 
 | Module | Owns (M0 state) | Must not know about |
 |---|---|---|
 | `src/Engine` | Deterministic sim core: `SeededRng`, `Tick`/`TimeModel`, combatant model, scheduled `ActionQueue`, abilities & casts (`DirectDamage`/`DirectHeal` + GCD/cooldown/priority/resource), role-aware targeting, `ExecutionProfile` (reaction delay), encounter model (`EncounterDef` phases + mechanic timeline; `MechanicArchetype` generic runtime), `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` | Content · Game · App · Godot — references nothing in the solution |
-| `src/Content` | Ability registry (`AbilityRow` → `AbilityDef`, generated `Tooltips`), class roster (`Classes` + `createRaider` factory, kits into the ability registry), encounter catalog (`Encounters`: Warden, Sentinel — phases + mechanic timelines), `ContentFixtures` (the class raid) | Game · App · Godot |
-| `src/Game` | The management layer: `GuildSave` aggregate (guild + roster + progression + economy + raid history), `SaveMigrations` registry (v2, with a real v1→v2 migration), `SaveSerializer` (JSON → migrate → validate), atomic `FileStorageAdapter`, `SaveService`, `Guilds.CreateStarter` factory, and `RaidResolver` (folds a fight into gold / XP / levels + a `RaidSummary`) | App · Godot |
+| `src/Content` | Ability registry (`AbilityRow` → `AbilityDef`, generated `Tooltips`), class roster (`Classes` + `createRaider` factory), encounter catalog (`Encounters`: Warden, Sentinel — phases + mechanic timelines), item catalog (`Items` + per-encounter `Loot` tables), `ContentFixtures` | Game · App · Godot |
+| `src/Game` | The management layer: `GuildSave` aggregate (guild + roster + progression + gear + economy + raid history), `SaveMigrations` (v3, real chained v1→v2→v3), `SaveSerializer`, atomic `FileStorageAdapter`, `SaveService`, `Guilds.CreateStarter`, `Warband` (projects raiders → combatants, folding equipped gear into stats), and `RaidResolver` (folds a fight into gold / XP / levels / loot drops + a `RaidSummary`) | App · Godot |
 | `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |
 | `src/App` | Godot 4.7 C#: `AppTheme` (carved-stone `Theme`, first cut), `Main` coordinator (load/create guild → roster → Start Raid → playback → save), `RosterView`, and `CombatView` (combat-log playback, a pure consumer of the event stream). Wires save + classes + engine into the raid-night loop, framed by the theme. **The only Godot-referencing project.** | — |
 | `tests/Engine.Tests` | Golden (dummy/trio/caster hashes + full-stream snapshot) + determinism + outcome/cast behavioral coverage | — |
