@@ -62,17 +62,17 @@ public partial class Main : Control
         Swap(view);
     }
 
-    private void StartRaid()
+    private void StartRaid(EncounterDef encounter)
     {
         var raid = new RaidSetup(_guild.Roster.Select(ToCombatant).ToList());
         ulong seed = (ulong)DateTime.UtcNow.Ticks; // a fresh fight each time
-        var input = new SimInput(new SeededRng(seed), SimConfig.Default, raid, Encounters.Warden);
+        var input = new SimInput(new SeededRng(seed), SimConfig.Default, raid, encounter);
         SimResult result = Simulator.SimulateEncounter(input);
 
         (GuildSave updated, RaidSummary summary) = RaidResolver.Resolve(_guild, result, input.Encounter, seed);
         _guild = updated;
         _saves.Save(_guild); // auto-save the outcome
-        GD.Print($"raid {result.Outcome}: +{summary.GoldAwarded} gold (now {_guild.Economy.Gold}); saved");
+        GD.Print($"raid {result.Outcome} vs {encounter.Name}: +{summary.GoldAwarded} gold (now {_guild.Economy.Gold}); saved");
 
         var view = new CombatView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);

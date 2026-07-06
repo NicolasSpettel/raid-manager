@@ -1,18 +1,19 @@
 using System;
 using Content;
+using Engine;
 using Game;
 using Godot;
 
 namespace App;
 
 /// <summary>
-/// The guild roster screen: the guild's name/gold/reputation, its raiders (name + class + role), and the
-/// actions — Start Raid and Save. Framed in the app's carved-stone theme; reads the save aggregate,
-/// never writes it (that goes through the coordinator).
+/// The guild roster screen: guild name/gold/reputation, a last-raid banner, the raiders (name, class,
+/// level, gear power), and the actions — raid a chosen boss, or save. Framed in the carved-stone theme;
+/// reads the save aggregate, never writes it (that goes through the coordinator).
 /// </summary>
 public partial class RosterView : Control
 {
-    public void Load(GuildSave guild, Action onStartRaid, Action onSave)
+    public void Load(GuildSave guild, Action<EncounterDef> onStartRaid, Action onSave)
     {
         ArgumentNullException.ThrowIfNull(guild);
 
@@ -39,6 +40,11 @@ public partial class RosterView : Control
         title.AddThemeColorOverride("font_color", AppTheme.Gold);
         root.AddChild(title);
 
+        if (guild.History.Count > 0)
+        {
+            root.AddChild(LastRaidBanner(guild.History[^1]));
+        }
+
         root.AddChild(new Label { Text = $"Roster ({guild.Roster.Count})        Raids fought: {guild.History.Count}" });
 
         var listPanel = new PanelContainer();
@@ -62,12 +68,30 @@ public partial class RosterView : Control
 
         var buttons = new HBoxContainer();
         buttons.AddThemeConstantOverride("separation", 10);
-        var raidButton = new Button { Text = "Start Raid  —  The Warden" };
-        raidButton.Pressed += () => onStartRaid();
+        foreach (EncounterDef encounter in Encounters.All)
+        {
+            var raidButton = new Button { Text = $"Raid  —  {encounter.Name}" };
+            raidButton.Pressed += () => onStartRaid(encounter);
+            buttons.AddChild(raidButton);
+        }
+
         var saveButton = new Button { Text = "Save Guild" };
         saveButton.Pressed += () => onSave();
-        buttons.AddChild(raidButton);
         buttons.AddChild(saveButton);
         root.AddChild(buttons);
+    }
+
+    private static Label LastRaidBanner(RaidSummary last)
+    {
+        string loot = last.LootDropped is null
+            ? "no drop"
+            : Items.Registry.Contains(last.LootDropped) ? Items.Registry.Get(last.LootDropped).Name : last.LootDropped;
+
+        var banner = new Label
+        {
+            Text = $"Last raid: {last.Outcome} vs {last.EncounterId}   —   +{last.GoldAwarded} gold, loot: {loot}",
+        };
+        banner.AddThemeColorOverride("font_color", AppTheme.Gold);
+        return banner;
     }
 }
