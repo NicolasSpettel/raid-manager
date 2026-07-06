@@ -59,8 +59,25 @@ public partial class Main : Control
     {
         var view = new RosterView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
-        view.Load(_guild, _difficulty, onStartRaid: StartRaid, onCycleDifficulty: CycleDifficulty, onSave: SaveGuild);
+        view.Load(_guild, _difficulty,
+            onStartRaid: StartRaid, onCycleDifficulty: CycleDifficulty, onRecruit: Recruit, onSave: SaveGuild);
         Swap(view);
+    }
+
+    private void Recruit()
+    {
+        if (Recruitment.TryHire(_guild, (ulong)DateTime.UtcNow.Ticks, out GuildSave updated))
+        {
+            _guild = updated;
+            _saves.Save(_guild);
+            GD.Print($"recruited a raider (-{Recruitment.Cost} gold); roster now {_guild.Roster.Count}");
+        }
+        else
+        {
+            GD.Print("not enough gold to recruit");
+        }
+
+        ShowRoster();
     }
 
     private void CycleDifficulty()

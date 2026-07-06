@@ -18,6 +18,7 @@ public partial class RosterView : Control
         Difficulty difficulty,
         Action<EncounterDef> onStartRaid,
         Action onCycleDifficulty,
+        Action onRecruit,
         Action onSave)
     {
         ArgumentNullException.ThrowIfNull(guild);
@@ -85,6 +86,10 @@ public partial class RosterView : Control
             raidButton.Pressed += () => onStartRaid(encounter);
             buttons.AddChild(raidButton);
         }
+
+        var recruitButton = new Button { Text = $"Recruit ({Recruitment.Cost}g)" };
+        recruitButton.Pressed += () => onRecruit();
+        buttons.AddChild(recruitButton);
 
         var saveButton = new Button { Text = "Save Guild" };
         saveButton.Pressed += () => onSave();
