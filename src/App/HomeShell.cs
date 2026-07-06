@@ -16,7 +16,11 @@ namespace App;
 /// </summary>
 public partial class HomeShell : Control
 {
-    private static readonly string[] Tabs = { "Home", "Squad", "Calendar", "Guild", "Manager" };
+    // The full FM-style tab set. Built: Home/Squad/Calendar/Guild/Manager. The rest are labelled placeholders.
+    private static readonly string[] Tabs =
+    {
+        "Home", "Squad", "Tactics", "Calendar", "Transfers", "Staff", "Inbox", "World", "Guild", "Manager",
+    };
 
     private readonly Dictionary<string, Button> _tabButtons = new(StringComparer.Ordinal);
 
@@ -85,27 +89,26 @@ public partial class HomeShell : Control
         ShowTab(Array.IndexOf(Tabs, initialTab) >= 0 ? initialTab : "Home");
     }
 
-    private HBoxContainer BuildNavBar()
+    private HFlowContainer BuildNavBar()
     {
-        var nav = new HBoxContainer();
-        nav.AddThemeConstantOverride("separation", 4);
+        var nav = new HFlowContainer(); // wraps to a second row if the window is narrow
+        nav.AddThemeConstantOverride("h_separation", 4);
+        nav.AddThemeConstantOverride("v_separation", 4);
 
         foreach (string tab in Tabs)
         {
-            var button = new Button { Text = tab, ToggleMode = true, CustomMinimumSize = new Vector2(110, 38) };
+            var button = new Button { Text = tab, ToggleMode = true, CustomMinimumSize = new Vector2(92, 36) };
             string captured = tab;
             button.Pressed += () => ShowTab(captured);
             _tabButtons[tab] = button;
             nav.AddChild(button);
         }
 
-        nav.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill }); // spacer
-
-        var save = new Button { Text = "Save", CustomMinimumSize = new Vector2(90, 38) };
+        var save = new Button { Text = "Save", CustomMinimumSize = new Vector2(78, 36) };
         save.Pressed += () => _onSave();
         nav.AddChild(save);
 
-        var menu = new Button { Text = "Menu", CustomMinimumSize = new Vector2(90, 38) };
+        var menu = new Button { Text = "Menu", CustomMinimumSize = new Vector2(78, 36) };
         menu.Pressed += () => _onMenu();
         nav.AddChild(menu);
 
@@ -131,7 +134,8 @@ public partial class HomeShell : Control
             "Calendar" => BuildCalendar(),
             "Guild" => BuildGuild(),
             "Manager" => BuildManager(),
-            _ => BuildHome(),
+            "Home" => BuildHome(),
+            _ => BuildPlaceholder(tab),
         };
 
         _contentPanel.AddChild(_currentContent);
@@ -237,6 +241,28 @@ public partial class HomeShell : Control
             col.AddChild(StatBar(attr.Name, manager.Of(attr.Id), ManagerProfile.MaxValue));
         }
 
+        return Wrap(col);
+    }
+
+    // Not-yet-built tabs: a labelled placeholder saying what the section will be (grounded in the GDD).
+    private static ScrollContainer BuildPlaceholder(string tab)
+    {
+        string description = tab switch
+        {
+            "Tactics" => "Tactics & raid prep (GDD §7): set the raid group, assignments (who taunts, who interrupts, defensive-CD plans), and standing orders before a pull.",
+            "Transfers" => "The transfer market (GDD §8b): scout, value, buy, sell, and poach raiders from other guilds and the ~400 free agents — performance-driven prices, never wallet-scaling.",
+            "Staff" => "Staff & delegation (GDD §6b/§12): hire a co-leader, analyst, or trainer and delegate the parts of the job you'd rather not micromanage — quality scales with their ability.",
+            "Inbox" => "Your inbox (GDD §11): the connective tissue — injuries, offers, board messages, world-first news, and choices to act on all arrive here.",
+            "World" => "The living world (GDD §5): the season leaderboard, your rivals, the world-first race, and news from the other ~200 guilds racing the same raid.",
+            _ => "Coming soon.",
+        };
+
+        VBoxContainer col = Padded();
+        col.AddChild(Header(tab));
+        var soon = new Label { Text = "— not built yet —" };
+        soon.AddThemeColorOverride("font_color", new Color("#7a756a"));
+        col.AddChild(soon);
+        col.AddChild(Dim(description));
         return Wrap(col);
     }
 
