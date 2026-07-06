@@ -1,0 +1,30 @@
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+end_of_line = lf
+indent_style = space
+
+[*.cs]
+indent_size = 4
+
+# Structural conventions enforced at build time (EnforceCodeStyleInBuild).
+csharp_style_namespace_declarations = file_scoped:error   # IDE0161
+csharp_prefer_braces = true:warning
+dotnet_sort_system_directives_first = true
+
+# 'var': allowed, not mandated (keeps diffs quiet, avoids style churn as errors).
+csharp_style_var_for_built_in_types = false:silent
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:silent
+
+# Nullable correctness is a hard error (part of determinism/robustness floor).
+dotnet_diagnostic.CS8618.severity = error
+
+[*.{csproj,props,targets,xml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

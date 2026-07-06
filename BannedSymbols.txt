@@ -1,0 +1,9 @@
+# Determinism guard for the sim core (Engine/Content/Game).
+# The build FAILS if any of these appear — same inputs must produce byte-identical output forever.
+# Format: {symbol documentation-comment ID};{message shown at the error}
+T:System.Random;Use Engine.SeededRng. Determinism requires a seeded PRNG, never System.Random.
+P:System.DateTime.Now;Wall-clock time is nondeterministic. Take time as a parameter or a Tick.
+P:System.DateTime.UtcNow;Wall-clock time is nondeterministic. Take time as a parameter or a Tick.
+P:System.DateTimeOffset.Now;Wall-clock time is nondeterministic. Take time as a parameter or a Tick.
+P:System.DateTimeOffset.UtcNow;Wall-clock time is nondeterministic. Take time as a parameter or a Tick.
+M:System.Guid.NewGuid;Nondeterministic id. Derive ids from seeded state instead.

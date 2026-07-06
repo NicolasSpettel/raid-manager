@@ -1,0 +1,29 @@
+# Normalize text to LF in the repository (determinism-friendly, cross-machine stable).
+* text=auto eol=lf
+
+# Explicit text types
+*.cs        text
+*.csproj    text
+*.props     text
+*.targets   text
+*.sln       text
+*.md        text
+*.json      text
+*.editorconfig text
+*.gitattributes text
+*.godot     text
+*.tres      text
+*.tscn      text
+*.import    text
+
+# Binary assets — never touch line endings
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.ico  binary
+*.ttf  binary
+*.otf  binary
+*.wav  binary
+*.ogg  binary
+*.mp3  binary

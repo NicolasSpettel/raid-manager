@@ -1,0 +1,16 @@
+<Project>
+
+  <!--
+    The quality floor (M0). Imported automatically by EVERY project in the solution.
+    These gates exist from the first commit so nothing built later can silently rot the floor.
+  -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-Recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>
