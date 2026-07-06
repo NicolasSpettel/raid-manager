@@ -18,10 +18,13 @@ engine and a versioned `GuildSave` (chained through real **v1 → v2 → v3** mi
 theme with a procedural stone-textured backdrop. **Auras** (DoTs + stacking debuffs) back a
 tier-2 boss (the Ashen King), and **difficulty tiers** (Normal/Heroic/Mythic) scale encounters — a fresh
 guild clears the Ashen King on Normal but wipes it on Mythic; fallen raiders are **injured** and fight
-weaker until they recover (so roster depth matters). `dotnet build -warnaserror` + `dotnet test` green (65 tests).
+weaker until they recover (so roster depth matters). **M2 step 1 is in:** a 2D **stage renderer** (tokens,
+live HP, telegraph flashes) sits behind a **Log ↔ Stage toggle** — a second pure consumer of the same
+event stream. `dotnet build -warnaserror` + `dotnet test` green (70 tests).
 **Next (post-slice):** the authored **textured `Theme`** + display font (the gritty look), threat-based
-taunt-swaps + the `interruptibleCast` archetype, a gear screen, then M2 (the 2D tactical stage renderer).
-Plan: **[docs/m1-build-plan.md](docs/m1-build-plan.md)**. Positions (5) deferred.
+taunt-swaps + the `interruptibleCast` archetype, and **M2 step 2** — engine positions (fixed-point 2D) +
+move events + telegraph geometry (stand-in-fire), then a richer sprite pass. Plans:
+**[docs/m1-build-plan.md](docs/m1-build-plan.md)** · **[docs/m2-build-plan.md](docs/m2-build-plan.md)**.
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)
 → [docs/BLUEPRINT.md](docs/BLUEPRINT.md) §4 (repo) & §10 (conventions) → [docs/engine-spec.md](docs/engine-spec.md)
@@ -128,7 +131,7 @@ M0 foundation built and green. Each module gets one line: what it owns, what it 
 | `src/Content` | Ability registry (`AbilityRow` → `AbilityDef`, generated `Tooltips`), class roster (`Classes` + `createRaider` factory), encounter catalog (`Encounters`: Warden, Sentinel, Ashen King, Frostwarden — tiers 1–3), difficulty scaling (`Difficulties`: Normal/Heroic/Mythic), item catalog (`Items` + per-encounter `Loot`), `ContentFixtures` | Game · App · Godot |
 | `src/Game` | The management layer: `GuildSave` aggregate (guild + roster + progression + gear + injuries + economy + raid history), `SaveMigrations` (v4, real chained v1→v2→v3→v4), `SaveSerializer`, atomic `FileStorageAdapter`, `SaveService`, `Guilds.CreateStarter`, `Warband` (projects raiders → combatants, folding gear + injury penalty), `Campaign` (headless N-raid loop), `Recruitment` (hire raiders for gold), and `RaidResolver` (folds a fight into gold / XP / levels / loot / injuries + a `RaidSummary`) | App · Godot |
 | `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |
-| `src/App` | Godot 4.7 C#: `AppTheme` (carved-stone `Theme`, first cut), `Main` coordinator (load/create guild → roster → Start Raid → playback → save), `RosterView`, and `CombatView` (combat-log playback, a pure consumer of the event stream). Wires save + classes + engine into the raid-night loop, framed by the theme. **The only Godot-referencing project.** | — |
+| `src/App` | Godot 4.7 C#: `AppTheme` (carved-stone `Theme` + procedural stone backdrop), `Main` coordinator (guild → roster → raid → Log/Stage playback → save; difficulty, rest, recruit), `RosterView`, `CombatView` (log playback), `StageView` (2D board playback). Both views are pure consumers of the same event stream. **The only Godot-referencing project.** | — |
 | `tests/Engine.Tests` | Golden (dummy/trio/caster hashes + full-stream snapshot) + determinism + outcome/cast behavioral coverage | — |
 | `tests/Content.Tests` | Registry completeness + tooltip drift + content→engine integration | — |
 | `tests/Architecture.Tests` | NetArchTest boundary rules — second net over the ProjectReference walls | — |
