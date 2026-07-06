@@ -1,0 +1,34 @@
+name: CI
+
+# The M0 floor, enforced on every push/PR to main. There is no "we'll fix CI later" phase —
+# determinism, boundaries, and the golden hash are gates from the first commit (testing-strategy).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore RaidManager.sln
+
+      # Builds the whole solution incl. the Godot App — Godot.NET.Sdk + GodotSharp come from NuGet,
+      # so no Godot editor is needed for build/test (Engine/Content/Game are headless by design).
+      - name: Build (warnings as errors)
+        run: dotnet build RaidManager.sln --no-restore -warnaserror
+
+      - name: Test (golden + determinism + boundaries)
+        run: dotnet test RaidManager.sln --no-build --verbosity normal
+
+      - name: Headless dummy-fight smoke
+        run: dotnet run --project src/Sim --no-build -- run dummy --seed 1

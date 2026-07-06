@@ -1,0 +1,14 @@
+; Godot project configuration.
+; Minimal M0 shell — proves the Godot app runs the same Engine as the Sim CLI.
+
+config_version=5
+
+[application]
+
+config/name="Raid Manager (M0 shell)"
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[dotnet]
+
+project/assembly_name="App"

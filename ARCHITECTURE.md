@@ -7,10 +7,12 @@
 
 ## Project status
 
-**Phase: READY TO BUILD (M0).** Design is deep where it matters (engine, combat math, economy,
-entities, persistence, architecture all locked); stack decided (**Godot 4 + C#**); toolchain
-installed and verified (.NET 8, Node, Godot 4.7 .NET, godot-mcp connected). Zero code yet — the
-next session executes **[docs/m0-build-plan.md](docs/m0-build-plan.md)**.
+**Phase: M0 FOUNDATION BUILT (green).** The skeleton, deterministic engine core, quality gates,
+and golden/determinism/boundary tests all exist and pass. `dotnet build -warnaserror` + `dotnet test`
+are green; the Godot `App` replays the Sim's **byte-identical** event stream (`hash=bcdf32113982c369`).
+Stack verified in situ: .NET 8, Godot 4.7 .NET, godot-mcp. **Next: M1 — the vertical slice**
+([docs/BLUEPRINT.md](docs/BLUEPRINT.md) §11); M0's step-by-step is preserved in
+**[docs/m0-build-plan.md](docs/m0-build-plan.md)**.
 
 **If you are a coding session, read in this order:** this file → [docs/m0-build-plan.md](docs/m0-build-plan.md)
 → [docs/BLUEPRINT.md](docs/BLUEPRINT.md) §4 (repo) & §10 (conventions) → [docs/engine-spec.md](docs/engine-spec.md)
@@ -107,9 +109,22 @@ scale, combat-renderer richness pass, and more — each with a current recommend
 
 ## Code map
 
-*(Empty by design — populated the day code exists. Planned shape (a .NET solution, [ADR-0001](docs/adr/0001-solution-and-boundaries.md)):
-`src/Engine · src/Content · src/Game` (C# libs) · `src/App` (Godot 4 C#) · `src/Sim` (console) —
-see BLUEPRINT §4. Every new module gets one line here: what it owns, what it must not know about.)*
+M0 foundation built and green. Each module gets one line: what it owns, what it must not know about
+(the walls are `ProjectReference`s — [ADR-0001](docs/adr/0001-solution-and-boundaries.md)).
+
+| Module | Owns (M0 state) | Must not know about |
+|---|---|---|
+| `src/Engine` | Deterministic sim core: `SeededRng` (PCG-XSH-RR), `Tick`/`TimeModel`, `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `DummyFight` fixture | Content · Game · App · Godot — references nothing in the solution |
+| `src/Content` | Registries/templates (namespace anchor only in M0) | Game · App · Godot |
+| `src/Game` | Guild/roster/economy/saves/day-loop (namespace anchor only in M0) | App · Godot |
+| `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |
+| `src/App` | Godot 4.7 C# shell: `Main` scene runs the same Engine, shows log+hash. **The only Godot-referencing project.** | — |
+| `tests/Engine.Tests` | Golden (seed 1 = `bcdf32113982c369` + full-stream snapshot) + determinism guards | — |
+| `tests/Architecture.Tests` | NetArchTest boundary rules — second net over the ProjectReference walls | — |
+
+**Quality gates** (root: `Directory.Build.props`, `.editorconfig`, `BannedSymbols.txt`): nullable,
+warnings-as-errors, file-scoped namespaces, and the determinism banned-API guard (`System.Random`,
+`DateTime.Now/UtcNow`, `Guid.NewGuid` fail the build in Engine/Content/Game). CI: `.github/workflows/ci.yml`.
 
 ## Session protocol for LLMs (and humans)
 

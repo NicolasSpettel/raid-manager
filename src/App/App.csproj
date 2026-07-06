@@ -1,0 +1,22 @@
+<Project Sdk="Godot.NET.Sdk/4.7.0">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!--
+      App is the UI/cosmetic layer and the ONE place Godot lives. Godot's source generators emit
+      partial classes, so style/analyzer strictness is kept lenient here to keep the build green.
+      The determinism banned-API analyzer intentionally does NOT apply to App (BLUEPRINT §5): this
+      is the single allow-listed layer for wall-clock time / cosmetic randomness.
+    -->
+    <AnalysisLevel>latest-Minimum</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Engine\Engine.csproj" />
+    <ProjectReference Include="..\Content\Content.csproj" />
+    <ProjectReference Include="..\Game\Game.csproj" />
+  </ItemGroup>
+
+</Project>
