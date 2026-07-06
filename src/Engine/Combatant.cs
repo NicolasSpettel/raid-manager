@@ -47,6 +47,18 @@ public sealed record StatBlock(
 public sealed record ExecutionProfile(int ReactionTicks);
 
 /// <summary>
+/// The combat-relevant projection of a raider's attributes (GDD §8a′), resolved by the Game layer so the
+/// Engine stays registry-agnostic (it never names an attribute). Scalars are percent multipliers
+/// (100 = neutral): <see cref="DamageMultPct"/> scales output, <see cref="DefenseMultPct"/> scales damage
+/// taken. <see cref="MovementSkill"/> (1–20) is the base for the seeded dodge roll. Neutral defaults mean a
+/// combatant with no attributes behaves exactly as before — so non-attributed fixtures are unchanged.
+/// </summary>
+public sealed record CombatAttributes(int DamageMultPct = 100, int DefenseMultPct = 100, int MovementSkill = 10)
+{
+    public static CombatAttributes Neutral { get; } = new();
+}
+
+/// <summary>
 /// The immutable definition of one combatant, as authored/generated outside the engine. The engine
 /// spawns a mutable runtime combatant from this, so a fixture can be simulated repeatedly without
 /// state leaking between runs (determinism). <see cref="Abilities"/> is null for pure auto-attackers.
@@ -60,7 +72,8 @@ public sealed record CombatantSpec(
     StatBlock Stats,
     IReadOnlyList<AbilityDef>? Abilities = null,
     ExecutionProfile? Execution = null,
-    Position SpawnPosition = default);
+    Position SpawnPosition = default,
+    CombatAttributes? Attributes = null);
 
 /// <summary>Mutable per-encounter runtime state for one combatant. Engine-internal.</summary>
 internal sealed class Combatant
@@ -74,7 +87,14 @@ internal sealed class Combatant
         Hp = spec.Stats.MaxHp;
         Resource = spec.Stats.MaxResource;
         Pos = spec.SpawnPosition;
+        DamageDealtMultPct = Attr.DamageMultPct; // the Damage scalar (§8a′); enrage etc. adjust from here
     }
+
+    /// <summary>Resolved combat attributes (neutral if the combatant was built without any).</summary>
+    private CombatAttributes Attr => Spec.Attributes ?? CombatAttributes.Neutral;
+
+    /// <summary>Movement skill (1–20) — the base for the seeded dodge roll (§8a′).</summary>
+    public int MovementSkill => Attr.MovementSkill;
 
     public CombatantSpec Spec { get; }
 
@@ -88,8 +108,8 @@ internal sealed class Combatant
 
     public bool IsAlive => Hp > 0;
 
-    /// <summary>Percent multiplier on damage this combatant deals (100 = normal). Raised by Enrage.</summary>
-    public int DamageDealtMultPct { get; set; } = 100;
+    /// <summary>Percent multiplier on damage this combatant deals (100 = normal). Seeded from the Damage scalar; Enrage raises it.</summary>
+    public int DamageDealtMultPct { get; set; }
 
     /// <summary>Accumulated threat. An enemy targets the highest-threat raider (tanking).</summary>
     public int Threat { get; set; }
@@ -105,7 +125,7 @@ internal sealed class Combatant
     {
         get
         {
-            int pct = 100;
+            int pct = Attr.DefenseMultPct; // the Defense scalar (§8a′); debuff stacks add on top
             foreach (AuraInstance aura in _auras.Values)
             {
                 pct += aura.Stacks * aura.Def.DamageTakenBonusPctPerStack;

@@ -11,7 +11,7 @@ namespace Engine;
 /// <summary>A live ground hazard (void zone) — its geometry plus when it damages and when it clears.</summary>
 internal sealed class Hazard
 {
-    public Hazard(string key, string mechanicId, Position center, int radius, int amount, int tickInterval, int expiresAt)
+    public Hazard(string key, string mechanicId, Position center, int radius, int amount, int tickInterval, int expiresAt, int dodgeDc)
     {
         Key = key;
         MechanicId = mechanicId;
@@ -20,6 +20,7 @@ internal sealed class Hazard
         Amount = amount;
         TickInterval = tickInterval;
         ExpiresAt = expiresAt;
+        DodgeDc = dodgeDc;
     }
 
     public string Key { get; }
@@ -35,6 +36,9 @@ internal sealed class Hazard
     public int TickInterval { get; }
 
     public int ExpiresAt { get; }
+
+    /// <summary>Difficulty of running out (0 = always escapable); rolled against a raider's movement skill.</summary>
+    public int DodgeDc { get; }
 
     /// <summary>Set once the hazard's warning window elapses and it starts dealing damage (emits Active).</summary>
     public bool Activated { get; set; }

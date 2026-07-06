@@ -23,6 +23,7 @@ public static class Guilds
     public static GuildSave CreateStarter(string guildName, ulong seed, string createdAtIso, int rosterSize = 8)
     {
         var rng = new SeededRng(seed);
+        var attrRng = new SeededRng(seed, stream: 99); // a separate stream so class/name draws are unchanged
         List<ClassDef> classes = Classes.Registry.All.ToList();
 
         var roster = new List<RaiderRecord>(rosterSize);
@@ -32,7 +33,8 @@ public static class Guilds
             ClassDef cls = i < classes.Count ? classes[i] : classes[rng.NextInt(classes.Count)];
             string name = NamePool[rng.NextInt(NamePool.Length)];
             string id = "r:" + (i + 1).ToString("D4", CultureInfo.InvariantCulture);
-            roster.Add(new RaiderRecord(id, name, cls.Id, Equipped: new List<string>()));
+            AttributeVector attributes = WorldGen.RollStarterAttributes(attrRng, PrestigeTier.National);
+            roster.Add(new RaiderRecord(id, name, cls.Id, Equipped: new List<string>(), Attributes: attributes));
         }
 
         return new GuildSave(

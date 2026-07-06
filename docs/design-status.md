@@ -10,6 +10,7 @@
 | System | Where |
 |---|---|
 | Combat model — tick engine, state machine (turret/light/heavy/mechanic), action-slot greed↔panic decision, event stream | engine-spec, GDD §7/§8d |
+| Attribute resolution (§8a′) — scalars → multipliers, behaviours → seeded checks | GDD §8a′ — **first slice BUILT** (`CombatResolution` + engine `CombatAttributes`: Damage/Defense scalars, Awareness dodge DC). Mapping FM-attrs→effects still [OPEN]; potion/defensive-CD behaviours still to add. |
 | Mechanic archetypes + discovered-timeline + cooldown-learning loop | engine-spec §8, GDD §7 |
 | Class kit *framework* (axes, states, raid utility, interrupts/dispels, cast-commitment) | GDD §8d/§8e |
 | Healer & tank *templates* (kit shape, mana clock, taunt window) + 2 reference kits each | GDD §8f/§8g |

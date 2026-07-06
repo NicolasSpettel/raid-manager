@@ -40,8 +40,10 @@ public static class Warband
         }
 
         IReadOnlyList<AbilityDef> kit = cls.Kit.Select(Abilities.Registry.Def).ToList();
+        CombatAttributes combatAttributes = CombatResolution.Resolve(raider.Attributes); // §8a′: attributes → combat
         return new CombatantSpec(
-            new CombatantId(raider.Id), CombatantKind.Raider, Side.Raid, cls.Role, raider.Name, stats, kit);
+            new CombatantId(raider.Id), CombatantKind.Raider, Side.Raid, cls.Role, raider.Name, stats, kit,
+            Attributes: combatAttributes);
     }
 
     /// <summary>Total power of a raider's equipped gear (0 if none).</summary>

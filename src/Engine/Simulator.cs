@@ -602,7 +602,7 @@ public static class Simulator
                     int interval = mechanic.TickIntervalTicks > 0 ? mechanic.TickIntervalTicks : 10;
                     int duration = mechanic.DurationTicks > 0 ? mechanic.DurationTicks : 40;
                     var hazard = new Hazard(
-                        $"{mechanic.Id}@{tick}", mechanic.Id, dropOn.Pos, radius, mechanic.Amount, interval, tick + duration);
+                        $"{mechanic.Id}@{tick}", mechanic.Id, dropOn.Pos, radius, mechanic.Amount, interval, tick + duration, mechanic.DodgeDc);
                     ctx.AddHazard(hazard);
                     ctx.Emit(new HazardEvent(new Tick(tick), mechanic.Id, hazard.Center, radius, HazardState.Spawn));
                     ctx.Queue.Schedule(tick + interval, new ScheduledAction(ActionKind.HazardTick, HazardKey: hazard.Key));
@@ -666,11 +666,29 @@ public static class Simulator
         {
             if (actor.Pos.WithinRadius(h.Center, h.Radius))
             {
+                if (!RollDodge(ctx, actor.MovementSkill, h.DodgeDc))
+                {
+                    return; // failed the movement check — caught in the fire, takes the tick
+                }
+
                 actor.Pos = StepOutside(actor.Pos, h.Center, h.Radius);
                 ctx.Emit(new MoveEvent(new Tick(tick), actor.Id, actor.Pos));
                 return; // one relocation per action
             }
         }
+    }
+
+    // A Baldur's-Gate-style skill check (§8a′): skill ≥ DC auto-passes; otherwise a seeded d20 must beat the
+    // gap. DC 0 always passes and draws no rng, so hazards without a DC keep their exact old (deterministic) behaviour.
+    private static bool RollDodge(SimContext ctx, int skill, int dc)
+    {
+        if (dc <= 0 || skill >= dc)
+        {
+            return true;
+        }
+
+        int gap = dc - skill;
+        return ctx.Rng.NextInt(1, 21) > gap; // d20 > gap
     }
 
     // The point just outside the hazard edge, along the ray from its centre through the actor (integer-only).

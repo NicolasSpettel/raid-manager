@@ -54,7 +54,8 @@ public sealed record MechanicInstance(
     int? Phase = null,
     int Radius = 0,
     int DurationTicks = 0,
-    int TickIntervalTicks = 0);
+    int TickIntervalTicks = 0,
+    int DodgeDc = 0); // 0 = always dodgeable; >0 = a Movement/Awareness DC roll decides who escapes (§8a′)
 
 /// <summary>
 /// An ordered encounter phase. Phase 0 is the opener (no trigger). Later phases advance when their

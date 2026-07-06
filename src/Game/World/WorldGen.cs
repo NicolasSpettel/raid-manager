@@ -70,6 +70,18 @@ public static class WorldGen
         return new World(seed, config.CurrentSeason, guilds, raiders, freeAgents);
     }
 
+    /// <summary>
+    /// Roll a coherent attribute vector for a raider not born through the full pipeline (e.g. the player's
+    /// starter guild) — same latent-factor model, its own draw order (so it never touches the world golden).
+    /// </summary>
+    public static AttributeVector RollStarterAttributes(SeededRng rng, PrestigeTier tier)
+    {
+        ArchetypeDef archetype = PickArchetype(rng, tier);
+        LatentProfile latents = DrawLatents(rng, archetype);
+        int age = Math.Clamp(archetype.AgeMean + rng.NextInt(-archetype.AgeSpread, archetype.AgeSpread + 1), 16, 33);
+        return ProjectAttributes(rng, latents, age);
+    }
+
     // ── SlotFill (entities §3): archetype → latents → attributes → vocation → identity ──────────────────
     private static Raider GenerateRaider(
         SeededRng rng, RaiderId id, NamePool pool, PrestigeTier tier, CombatantRole role, int season, GuildId? membership)
