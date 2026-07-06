@@ -21,8 +21,7 @@ public class CampaignTests
         Assert.Equal(5, run.Guild.History.Count);
         Assert.True(run.Guild.Economy.Gold > start.Economy.Gold);
         Assert.True(run.Wins >= 1);
-        Assert.Contains(run.Guild.Roster, r => r.Level >= 3);                 // levelled up
-        Assert.Contains(run.Guild.Roster, r => r.Equipped is { Count: > 0 }); // geared up
+        Assert.Contains(run.Guild.Roster, r => r.Equipped is { Count: > 0 }); // geared up over the campaign
     }
 
     [Fact]

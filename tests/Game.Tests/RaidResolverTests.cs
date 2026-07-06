@@ -7,13 +7,13 @@ using Xunit;
 namespace Game.Tests;
 
 /// <summary>
-/// The progression loop: a finished raid folds into gold, XP/levels, and a history entry — the "career
+/// The progression loop: a finished raid folds into gold, loot, and a history entry — the "career
 /// history is a fold" mechanism (save-format.md). The resolver is pure — the input guild is untouched.
 /// </summary>
 public class RaidResolverTests
 {
     [Fact]
-    public void WinningARaid_AwardsGold_LevelsRaiders_AndRecordsHistory()
+    public void WinningARaid_AwardsGold_DropsLoot_AndRecordsHistory()
     {
         GuildSave guild = Guilds.CreateStarter("Test", 1, "2026-01-01T00:00:00Z", rosterSize: 8);
         SimResult result = Fight(guild, seed: 1);
@@ -24,7 +24,6 @@ public class RaidResolverTests
         Assert.True(updated.Economy.Gold > guild.Economy.Gold);
         Assert.Single(updated.History);
         Assert.Equal("Kill", summary.Outcome);
-        Assert.Contains(updated.Roster, r => r.Level > 1);            // a win levels raiders up
         Assert.NotNull(summary.LootDropped);                         // a win drops loot
         Assert.Contains(updated.Roster, r => r.Equipped is { Count: > 0 }); // and it gets equipped
         Assert.Empty(guild.History);                                 // input guild not mutated

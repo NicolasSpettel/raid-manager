@@ -70,7 +70,7 @@ public partial class RosterView : Control
             string injured = raider.InjuryRaidsLeft > 0 ? "       [injured]" : string.Empty;
             list.AddChild(new Label
             {
-                Text = $"    {raider.Name}       {cls.Name} ({cls.Role})       Lv {raider.Level}       Gear {Warband.GearPower(raider)}{injured}",
+                Text = $"    {raider.Name}       {cls.Name} ({cls.Role})       Gear {Warband.GearPower(raider)}{injured}",
             });
         }
 

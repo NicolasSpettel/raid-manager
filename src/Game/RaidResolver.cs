@@ -8,7 +8,7 @@ namespace Game;
 
 /// <summary>
 /// Turns a finished raid into career progress: folds the combat event stream into per-raider
-/// contributions, awards gold and XP (levelling up), drops loot on a win, and appends a
+/// contributions, awards gold, drops loot on a win, and appends a
 /// <see cref="RaidSummary"/> — the "career history is a fold" mechanism (BLUEPRINT §7, save-format.md).
 /// Pure: returns a new <see cref="GuildSave"/>, mutating nothing.
 /// </summary>
@@ -16,8 +16,6 @@ public static class RaidResolver
 {
     private const int WinGold = 500;
     private const int WipeGold = 100;
-    private const int WinBaseXp = 100;
-    private const int WipeBaseXp = 40;
     private const int InjuryDuration = 2; // raids a fallen raider fights at reduced strength
 
     public static (GuildSave Guild, RaidSummary Summary) Resolve(
@@ -50,7 +48,6 @@ public static class RaidResolver
 
         bool win = result.Outcome == EncounterOutcome.Kill;
         int gold = win ? WinGold : WipeGold;
-        int baseXp = win ? WinBaseXp : WipeBaseXp;
 
         var contributions = new List<RaiderContribution>(guild.Roster.Count);
         var newRoster = new List<RaiderRecord>(guild.Roster.Count);
@@ -61,11 +58,8 @@ public static class RaidResolver
             bool fell = died.Contains(raider.Id);
             contributions.Add(new RaiderContribution(raider.Id, dealt, healed, fell));
 
-            int gain = baseXp + ((dealt + healed) / 20);
-            (int level, int xp) = ApplyXp(raider.Level, raider.Xp, gain);
-
             int injury = fell ? InjuryDuration : Math.Max(0, raider.InjuryRaidsLeft - 1); // hurt, or recovering
-            newRoster.Add(raider with { Level = level, Xp = xp, InjuryRaidsLeft = injury });
+            newRoster.Add(raider with { InjuryRaidsLeft = injury });
         }
 
         string? lootDropped = win ? DropLoot(newRoster, encounter.Id, lootSeed) : null;
@@ -118,18 +112,4 @@ public static class RaidResolver
         roster[recipient] = Warband.EquipIfUpgrade(roster[recipient], drop);
         return drop.Id;
     }
-
-    private static (int Level, int Xp) ApplyXp(int level, int xp, int gain)
-    {
-        xp += gain;
-        while (xp >= XpForNextLevel(level))
-        {
-            xp -= XpForNextLevel(level);
-            level++;
-        }
-
-        return (level, xp);
-    }
-
-    private static int XpForNextLevel(int level) => 100 * level;
 }

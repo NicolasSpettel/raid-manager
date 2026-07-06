@@ -26,8 +26,6 @@ public sealed record RaiderRecord(
     string Id,
     string Name,
     string ClassId,
-    int Level = 1,
-    int Xp = 0,
     IReadOnlyList<string>? Equipped = null,
     int InjuryRaidsLeft = 0);
 

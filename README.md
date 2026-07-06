@@ -9,7 +9,7 @@ offline world. Sequel to Dungeon Manager, built in **Godot 4 + C#**.
 
 A full management loop runs end to end: create a guild → roster → **pick a boss and difficulty** →
 **watch the fight** on a **2D tactical stage** *or* a combat log (toggle between them; play/pause/speed/seek)
-→ earn **gold, XP, levels, and loot** → **save**. The combat is deep: threat/tanking, taunts and **two-tank
+→ earn **gold and loot** → **save**. The combat is deep: threat/tanking, taunts and **two-tank
 swaps**, interrupts, and **spatial mechanics** — bosses drop **void zones** that telegraph, and the raid
 **runs out of the fire**. Everything is deterministic and data-driven — a new class, spell, boss, or item is
 one data row. **89 tests** green; CI runs on every push.

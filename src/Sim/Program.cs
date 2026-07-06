@@ -78,7 +78,7 @@ internal static class SimCli
         foreach (RaiderRecord r in run.Guild.Roster)
         {
             Console.WriteLine(
-                $"   {r.Name,-10} {Classes.Registry.Get(r.ClassId).Name,-12} Lv {r.Level,-2} gear {Warband.GearPower(r)}");
+                $"   {r.Name,-10} {Classes.Registry.Get(r.ClassId).Name,-12} gear {Warband.GearPower(r)}");
         }
 
         return 0;

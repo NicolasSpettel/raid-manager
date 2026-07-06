@@ -13,9 +13,6 @@ namespace Game;
 /// </summary>
 public static class Warband
 {
-    /// <summary>Percent added to HP and auto-attack per level past 1 (first-pass, tunable).</summary>
-    private const int LevelBonusPct = 8;
-
     /// <summary>Build a combat spec from a raider: class kit + base stats + equipped gear bonuses.</summary>
     public static CombatantSpec ToCombatant(RaiderRecord raider)
     {
@@ -34,16 +31,6 @@ public static class Warband
         {
             MaxHp = cls.BaseStats.MaxHp + bonusHp,
             AttackDamage = cls.BaseStats.AttackDamage + bonusAttack,
-        };
-
-        // Each level past 1 adds a flat percentage to survivability and auto-attack power, so leveling is a
-        // real progression axis alongside gear (first-pass, tunable). Ability amounts are still flat (no
-        // spellpower stat yet), so this helps tanks/melee more than casters/healers — a known gap.
-        int levelPct = 100 + ((Math.Max(1, raider.Level) - 1) * LevelBonusPct);
-        stats = stats with
-        {
-            MaxHp = stats.MaxHp * levelPct / 100,
-            AttackDamage = stats.AttackDamage * levelPct / 100,
         };
 
         if (raider.InjuryRaidsLeft > 0)

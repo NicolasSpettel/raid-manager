@@ -10,7 +10,7 @@ namespace Game;
 /// <summary>
 /// Hiring raiders — the gold sink that gives the economy a purpose and deepens the bench (which the
 /// injury system makes matter). A recruit is generated deterministically from a seed: you pay the cost,
-/// you get who you get (a random class), fresh at level 1.
+/// you get who you get (a random class), with no gear.
 /// </summary>
 public static class Recruitment
 {
