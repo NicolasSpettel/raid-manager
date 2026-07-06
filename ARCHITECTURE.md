@@ -57,8 +57,11 @@ and **training** (→ attributes), per raider or per group (`WeekPlanner.Auto` f
 `sim play --raids N` runs a season on the calendar. The **front-end** now opens properly: **welcome screen** (§1) → **manager creation** (§2) → **job offers**
 (§4: a fresh manager picks a real low-prestige guild from the living world; `JobMarket.Take` converts its
 world roster — attributes + condition intact — into the playable save) → **contract talk** (§4) → **guild intro**
-(§3) → the **home hub** (`HomeShell`: nav tabs Home/Squad/Calendar/Guild/Manager), whose Squad raiders open a
-**unit page** (attributes + condition). `dotnet build -warnaserror` + `dotnet test` green (151 tests).
+(§3) → the **home hub** (`HomeShell`: 10 nav tabs, 5 built), whose Squad raiders open a **unit page**.
+**Architecture:** the two raider models are **unified** into one `RaiderRecord` (world + guild), and a career
+now **persists its living world** (ADR-0007 first slice): the save pins `WorldSeed` + `GeneratorVersion` +
+`ManagerGuildId` + `SeasonWeek` and materialises your guild, so the world regenerates byte-identically from
+the seed on reload. `dotnet build -warnaserror` + `dotnet test` green (155 tests).
 **Next (world):** balance the load/injury rates, richer activities (professions/quests/drills), the inbox that
 surfaces the week's events, contracts/transfers, and collapsing the two raider models (`RaiderRecord` ↔ world `Raider`) into one type.
 **[docs/m1-build-plan.md](docs/m1-build-plan.md)** · **[docs/m2-build-plan.md](docs/m2-build-plan.md)**.

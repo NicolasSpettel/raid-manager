@@ -155,9 +155,10 @@ public partial class HomeShell : Control
         col.AddChild(Header("Dashboard"));
         col.AddChild(new Label { Text = $"Squad: {_guild.Roster.Count} raiders    ·    Raids fought: {_guild.History.Count}" });
         col.AddChild(new Label { Text = $"Board expects: {_guild.Guild.BoardExpectation ?? "settle in and see what you've got."}" });
+        col.AddChild(Dim($"Season: week {_guild.SeasonWeek} of 12   ·   in a living world of ~200 guilds"));
 
         SeasonSchedule calendar = SeasonSchedule.Build(12);
-        CalendarEvent? next = calendar.Upcoming(1, 1).FirstOrDefault();
+        CalendarEvent? next = calendar.Upcoming(_guild.SeasonWeek, 1).FirstOrDefault();
         col.AddChild(Dim(next is not null ? $"Next up: week {next.Week} — {next.Name}" : "The season awaits."));
 
         if (_guild.History.Count > 0)

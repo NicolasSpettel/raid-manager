@@ -48,6 +48,11 @@ public partial class Main : Control
                 if (existing is not null)
                 {
                     _guild = existing;
+                    if (existing.WorldSeed != 0) // regenerate this career's living world from its pinned seed
+                    {
+                        _pendingWorld = WorldGen.Generate(existing.WorldSeed);
+                    }
+
                     ShowHome();
                 }
             },
@@ -114,7 +119,14 @@ public partial class Main : Control
     {
         string createdAtIso = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
         GuildSave guild = JobMarket.Take(_pendingWorld!, offer.GuildId, manager, createdAtIso);
-        guild = guild with { Guild = guild.Guild with { BoardExpectation = terms.ExpectationText } };
+        guild = guild with
+        {
+            Guild = guild.Guild with { BoardExpectation = terms.ExpectationText },
+            WorldSeed = _pendingWorld!.Seed,                 // persist the living world (ADR-0007) …
+            GeneratorVersion = WorldGen.GeneratorVersion,    // … pinned to the generator that made it …
+            ManagerGuildId = offer.GuildId.Value,            // … and which guild in it you manage.
+            SeasonWeek = 1,
+        };
 
         if (manager.BackgroundId == "rich_sponsor") // the sponsor's perk: extra starting funds
         {

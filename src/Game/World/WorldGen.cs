@@ -21,6 +21,9 @@ public sealed record WorldConfig(int GuildCount = 200, int RosterSize = 28, int 
 /// </summary>
 public static class WorldGen
 {
+    /// <summary>Pinned in the save (ADR-0007): the world regenerates from (seed, version). Bump when world-gen output changes.</summary>
+    public const int GeneratorVersion = 1;
+
     private static readonly string[] GuildNouns =
     {
         "Vanguard", "Covenant", "Wardens", "Ascendant", "Legion", "Circle",

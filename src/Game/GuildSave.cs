@@ -14,7 +14,13 @@ public sealed record GuildSave(
     IReadOnlyList<RaiderRecord> Roster,
     Economy Economy,
     IReadOnlyList<RaidSummary> History,
-    Manager? Manager = null);
+    Manager? Manager = null,
+    // Persistence of the living world (ADR-0007): the world regenerates from (WorldSeed, GeneratorVersion);
+    // your guild's roster above is the materialized "hot" state. SeasonWeek is where you are in the season.
+    ulong WorldSeed = 0,
+    int GeneratorVersion = 0,
+    string? ManagerGuildId = null,
+    int SeasonWeek = 1);
 
 /// <summary>Guild identity. <see cref="BoardExpectation"/> is the season goal you agreed at signing (GDD §4).</summary>
 public sealed record GuildInfo(string Name, int Reputation, string? BoardExpectation = null);

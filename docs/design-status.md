@@ -16,7 +16,7 @@
 | Healer & tank *templates* (kit shape, mana clock, taunt window) + 2 reference kits each | GDD §8f/§8g |
 | Combat replay view (WCL-style arena, telegraphs, feasibility triage, layout) | GDD §7, ui-design-system §5 |
 | Entity/component model + latent-factor world-gen | entities-and-worldgen — **first slice BUILT** (`src/Game/World`): deterministic `WorldGen` (~6,500 chars/seed), composition `Raider`, derived stars, world-gen golden. Contracts/career-ledger + season sim still to come. |
-| Persistence: seed + deltas + season compaction + Chronicle | ADR-0007, save-format |
+| Persistence: seed + deltas + season compaction + Chronicle | ADR-0007 — **first slice BUILT**: the career save pins `WorldSeed`+`GeneratorVersion`+`ManagerGuildId`+`SeasonWeek` and materialises the player's guild (the hot units); the world regenerates byte-identically from the seed on load. Still to do: the background **delta log** (for transfers/aging mutations), season-boundary **compaction**, and lazy hot-cache. |
 | Aging & career arc | GDD §8 |
 | Architecture: engine, Godot+C# stack, boundaries, testing, Principle 0 | BLUEPRINT, ADRs, testing-strategy |
 | Gear frame: slots, ilvl bands, binding, formula scaling, tier-set rotation | GDD §9/§8c |
