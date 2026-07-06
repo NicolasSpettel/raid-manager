@@ -81,10 +81,12 @@ Design-system primitives first (`Frame`, `Panel`, `List`, `StatBar`, `Tooltip`),
 Component Gallery scene; then the roster + gear screens bound to `GameState` signals (ADR-0002).
 **Exit:** screens render from the save aggregate; no per-screen frame reinvention (ui-design-system).
 
-### Step 9 — Combat-log playback (Godot)
-The log view replays the precomputed event stream with a playback clock (pause / 2× / seek), a pure
-consumer on a background-thread sim (never drives it). Stable entity-id keys. **Exit:** log view
-replays a golden stream; fold count asserted (testing-strategy §6).
+### Step 9 — Combat-log playback (Godot) ✅ done
+The `App` runs the real engine once, then **replays** the precomputed stream with a playback clock
+(play/pause, 1×/2×/4×, seek) — a pure consumer that never drives the sim. HP bars fold the stream to
+live health; a scrolling event log; the app still prints the byte-identical `classraid` hash (the
+one-engine-two-consumers check). *(Built programmatically; the DS primitives + one RPG `Theme` and the
+2D tactical stage renderer are step 8 / M2 — this is the log + HP view.)*
 
 ### Step 10 — Wire the raid night
 New-career flow → roster → assignments → run raid → playback → loot → save, end to end. A headless

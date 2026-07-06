@@ -7,15 +7,15 @@
 
 ## Project status
 
-**Phase: M1 IN PROGRESS — combat slice is content-complete (steps 1–4 + 6 done; positions deferred).**
-M0 foundation is tagged `v0.0-m0`. The engine + content pipeline now run a full **data-driven fight**:
-**4 authored classes** (Guardian/Cleric/Blademaster/Pyromancer — working names) built via the
-`createRaider` factory, versus **authored bosses** with phases + mechanics — a deterministic Kill,
-headless (`sim run classraid`). `dotnet build -warnaserror` + `dotnet test` green (38 tests); the Godot
-`App` still replays the byte-identical dummy stream (`hash=ac330b5fa219abde`). Positions (step 5) are
-deferred to the combat renderer that will consume them. Plan:
-**[docs/m1-build-plan.md](docs/m1-build-plan.md)** — remaining: save/load (7), the Godot roster / gear /
-combat-playback UI (8–9), wire the raid night (10).
+**Phase: M1 IN PROGRESS — combat slice + playback done (steps 1–4, 6, 9; 5 deferred).** M0 foundation is
+tagged `v0.0-m0`. A full **data-driven fight** — 4 authored classes (Guardian/Cleric/Blademaster/Pyromancer,
+working names) via the `createRaider` factory versus **authored bosses** with phases + mechanics — runs
+headless (`sim run classraid`) AND **plays back visually in the Godot app**: HP bars folding live, a
+scrolling log, play/pause/speed/seek — a pure consumer of the event stream (the app prints the
+byte-identical `classraid` hash, so one-engine-two-consumers still holds). `dotnet build -warnaserror` +
+`dotnet test` green (38 tests). Positions (step 5) are deferred to the tactical stage renderer. Plan:
+**[docs/m1-build-plan.md](docs/m1-build-plan.md)** — remaining: save/load (7), roster/gear screens + the
+RPG `Theme` (8), wire the raid night (10).
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)
 → [docs/BLUEPRINT.md](docs/BLUEPRINT.md) §4 (repo) & §10 (conventions) → [docs/engine-spec.md](docs/engine-spec.md)
@@ -122,7 +122,7 @@ M0 foundation built and green. Each module gets one line: what it owns, what it 
 | `src/Content` | Ability registry (`AbilityRow` → `AbilityDef`, generated `Tooltips`), class roster (`Classes` + `createRaider` factory, kits into the ability registry), encounter catalog (`Encounters`: Warden, Sentinel — phases + mechanic timelines), `ContentFixtures` (the class raid) | Game · App · Godot |
 | `src/Game` | Guild/roster/economy/saves/day-loop (namespace anchor only in M0) | App · Godot |
 | `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |
-| `src/App` | Godot 4.7 C# shell: `Main` scene runs the same Engine, shows log+hash. **The only Godot-referencing project.** | — |
+| `src/App` | Godot 4.7 C#: `Main` = combat-log playback (HP bars + scrolling log + play/pause/speed/seek), a pure consumer of the precomputed event stream; still prints the hash for the one-engine check. **The only Godot-referencing project.** | — |
 | `tests/Engine.Tests` | Golden (dummy/trio/caster hashes + full-stream snapshot) + determinism + outcome/cast behavioral coverage | — |
 | `tests/Content.Tests` | Registry completeness + tooltip drift + content→engine integration | — |
 | `tests/Architecture.Tests` | NetArchTest boundary rules — second net over the ProjectReference walls | — |

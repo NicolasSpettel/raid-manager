@@ -1,28 +1,207 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Content;
 using Engine;
 using Godot;
 
 namespace App;
 
 /// <summary>
-/// M0 App shell. Proves "one engine, two consumers": it runs the SAME Engine.SimulateEncounter that
-/// the Sim CLI runs and prints the byte-identical event stream + hash. Windowed, it also shows the
-/// log in a RichTextLabel; headless, the GD.Print output is what godot-mcp verifies against the CLI.
+/// M1 combat-log playback (BLUEPRINT §8, m1-build-plan step 9). Runs the real engine once to get the
+/// precomputed event stream, then REPLAYS it with a playback clock — the UI never drives the sim, it
+/// only folds a stream it already has. HP bars, a scrolling log, and pause/speed/seek controls.
 /// </summary>
 public partial class Main : Control
 {
+    private const int SeekBarHeight = 22;
+
+    private SimInput _input = null!;
+    private SimResult _result = null!;
+    private string[] _lines = System.Array.Empty<string>();
+    private int _maxTick;
+
+    private double _currentTick;
+    private double _speed = 1.0;
+    private bool _playing = true;
+    private bool _syncingSeek;
+
+    private Button _playButton = null!;
+    private Button _speedButton = null!;
+    private Label _tickLabel = null!;
+    private HSlider _seek = null!;
+    private RichTextLabel _log = null!;
+    private readonly List<CombatantSpec> _combatants = new();
+    private readonly Dictionary<string, ProgressBar> _hpBars = new();
+    private readonly Dictionary<string, int> _maxHp = new();
+
     public override void _Ready()
     {
-        SimResult result = Simulator.SimulateEncounter(Fixtures.Dummy(1));
-        string log = EventStream.Serialize(result.Events).TrimEnd('\n');
-        string hash = result.Hash();
+        _input = ContentFixtures.ClassRaid(1);
+        _result = Simulator.SimulateEncounter(_input);
+        _lines = EventStream.Serialize(_result.Events).TrimEnd('\n').Split('\n');
+        _maxTick = _result.Events.Count == 0 ? 0 : _result.Events[^1].Tick.Value;
 
-        GD.Print(log);
-        GD.Print($"outcome={result.Outcome} seed={result.Seed} engine=v{result.EngineVersion} schema=v{result.EventSchemaVersion}");
-        GD.Print($"hash={hash}");
+        // The M0 "one engine, two consumers" check still holds — compare to `sim run classraid`.
+        GD.Print($"classraid hash={_result.Hash()} outcome={_result.Outcome} maxTick={_maxTick}");
 
-        var label = new RichTextLabel();
-        label.SetAnchorsPreset(LayoutPreset.FullRect);
-        label.Text = $"{log}\n\nhash={hash}";
-        AddChild(label);
+        foreach (CombatantSpec spec in _input.Raid.Raiders.Concat(_input.Encounter.Enemies))
+        {
+            _combatants.Add(spec);
+            _maxHp[spec.Id.Value] = spec.Stats.MaxHp;
+        }
+
+        BuildUi();
+        Render();
+    }
+
+    public override void _Process(double delta)
+    {
+        if (!_playing)
+        {
+            return;
+        }
+
+        _currentTick += delta * TimeModel.TicksPerSecond * _speed;
+        if (_currentTick >= _maxTick)
+        {
+            _currentTick = _maxTick;
+            SetPlaying(false);
+        }
+
+        Render();
+    }
+
+    private void BuildUi()
+    {
+        var root = new VBoxContainer();
+        root.SetAnchorsPreset(LayoutPreset.FullRect);
+        root.AddThemeConstantOverride("separation", 6);
+        AddChild(root);
+
+        var controls = new HBoxContainer();
+        _playButton = new Button { Text = "Pause" };
+        _playButton.Pressed += () => SetPlaying(!_playing);
+        _speedButton = new Button { Text = "1x" };
+        _speedButton.Pressed += CycleSpeed;
+        var restart = new Button { Text = "Restart" };
+        restart.Pressed += () =>
+        {
+            _currentTick = 0;
+            SetPlaying(true);
+            Render();
+        };
+        _tickLabel = new Label { Text = string.Empty };
+        controls.AddChild(_playButton);
+        controls.AddChild(_speedButton);
+        controls.AddChild(restart);
+        controls.AddChild(_tickLabel);
+        root.AddChild(controls);
+
+        _seek = new HSlider { MinValue = 0, MaxValue = _maxTick, Step = 1 };
+        _seek.CustomMinimumSize = new Vector2(0, SeekBarHeight);
+        _seek.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _seek.ValueChanged += OnSeek;
+        root.AddChild(_seek);
+
+        var main = new HBoxContainer();
+        main.SizeFlagsVertical = SizeFlags.ExpandFill;
+        main.AddThemeConstantOverride("separation", 12);
+
+        var roster = new VBoxContainer();
+        roster.CustomMinimumSize = new Vector2(300, 0);
+        foreach (CombatantSpec spec in _combatants)
+        {
+            roster.AddChild(new Label { Text = $"{spec.Name}  ({spec.Role})" });
+            var bar = new ProgressBar
+            {
+                MinValue = 0,
+                MaxValue = spec.Stats.MaxHp,
+                Value = spec.Stats.MaxHp,
+                ShowPercentage = false,
+            };
+            bar.CustomMinimumSize = new Vector2(0, 18);
+            _hpBars[spec.Id.Value] = bar;
+            roster.AddChild(bar);
+        }
+
+        main.AddChild(roster);
+
+        _log = new RichTextLabel { ScrollActive = true, ScrollFollowing = true };
+        _log.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        _log.SizeFlagsVertical = SizeFlags.ExpandFill;
+        main.AddChild(_log);
+
+        root.AddChild(main);
+    }
+
+    private void Render()
+    {
+        int tick = (int)_currentTick;
+        var hp = new Dictionary<string, int>(_maxHp);
+        int visible = 0;
+
+        foreach (CombatEvent e in _result.Events)
+        {
+            if (e.Tick.Value > tick)
+            {
+                break; // events are emitted in non-decreasing tick order
+            }
+
+            ApplyToHp(hp, e);
+            visible++;
+        }
+
+        foreach ((string id, ProgressBar bar) in _hpBars)
+        {
+            bar.Value = System.Math.Max(0, hp.TryGetValue(id, out int v) ? v : 0);
+        }
+
+        _log.Text = string.Join('\n', _lines.Take(visible));
+        _tickLabel.Text = $"   tick {tick} / {_maxTick}    outcome: {_result.Outcome}";
+
+        _syncingSeek = true;
+        _seek.Value = tick;
+        _syncingSeek = false;
+    }
+
+    private void ApplyToHp(Dictionary<string, int> hp, CombatEvent e)
+    {
+        switch (e)
+        {
+            case Damage d when hp.ContainsKey(d.Target.Value):
+                hp[d.Target.Value] -= d.Amount;
+                break;
+            case Heal h when hp.ContainsKey(h.Target.Value):
+                hp[h.Target.Value] = System.Math.Min(_maxHp[h.Target.Value], hp[h.Target.Value] + h.Amount);
+                break;
+            case Death dth when hp.ContainsKey(dth.Victim.Value):
+                hp[dth.Victim.Value] = 0;
+                break;
+        }
+    }
+
+    private void OnSeek(double value)
+    {
+        if (_syncingSeek)
+        {
+            return; // programmatic update from Render, not a user drag
+        }
+
+        _currentTick = value;
+        SetPlaying(false);
+        Render();
+    }
+
+    private void CycleSpeed()
+    {
+        _speed = _speed switch { 1.0 => 2.0, 2.0 => 4.0, _ => 1.0 };
+        _speedButton.Text = $"{_speed:0}x";
+    }
+
+    private void SetPlaying(bool playing)
+    {
+        _playing = playing;
+        _playButton.Text = playing ? "Pause" : "Play";
     }
 }
