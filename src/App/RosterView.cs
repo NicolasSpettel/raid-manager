@@ -38,7 +38,7 @@ public partial class RosterView : Control
         title.AddThemeFontSizeOverride("font_size", 24);
         root.AddChild(title);
 
-        root.AddChild(new Label { Text = $"Roster ({guild.Roster.Count})" });
+        root.AddChild(new Label { Text = $"Roster ({guild.Roster.Count})        Raids fought: {guild.History.Count}" });
 
         var listPanel = new PanelContainer();
         listPanel.SizeFlagsVertical = SizeFlags.ExpandFill;
@@ -53,7 +53,7 @@ public partial class RosterView : Control
         foreach (RaiderRecord raider in guild.Roster)
         {
             ClassDef cls = Classes.Registry.Get(raider.ClassId);
-            list.AddChild(new Label { Text = $"    {raider.Name}       {cls.Name} ({cls.Role})" });
+            list.AddChild(new Label { Text = $"    {raider.Name}       {cls.Name} ({cls.Role})       Lv {raider.Level}" });
         }
 
         var buttons = new HBoxContainer();

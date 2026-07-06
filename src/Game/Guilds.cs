@@ -40,6 +40,7 @@ public static class Guilds
             createdAtIso,
             new GuildInfo(guildName, Reputation: 0),
             roster,
-            new Economy(Gold: 1000));
+            new Economy(Gold: 1000),
+            new List<RaidSummary>());
     }
 }

@@ -69,9 +69,14 @@ public partial class Main : Control
     private void StartRaid()
     {
         var raid = new RaidSetup(_guild.Roster.Select(ToCombatant).ToList());
-        var input = new SimInput(new SeededRng(1), SimConfig.Default, raid, Encounters.Warden);
+        ulong seed = (ulong)DateTime.UtcNow.Ticks; // a fresh fight each time
+        var input = new SimInput(new SeededRng(seed), SimConfig.Default, raid, Encounters.Warden);
         SimResult result = Simulator.SimulateEncounter(input);
-        GD.Print($"raid vs {input.Encounter.Name}: {result.Outcome} (hash {result.Hash()})");
+
+        (GuildSave updated, RaidSummary summary) = RaidResolver.Resolve(_guild, result, input.Encounter);
+        _guild = updated;
+        _saves.Save(_guild); // auto-save the outcome
+        GD.Print($"raid {result.Outcome}: +{summary.GoldAwarded} gold (now {_guild.Economy.Gold}); saved");
 
         var view = new CombatView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);

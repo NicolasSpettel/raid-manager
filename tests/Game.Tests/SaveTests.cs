@@ -82,14 +82,16 @@ public class SaveTests
     }
 
     [Fact]
-    public void HistoricalFixture_v1_RoundTripsThroughThePipeline()
+    public void HistoricalFixture_v1_MigratesToCurrent_ThroughThePipeline()
     {
         string path = Path.Combine(AppContext.BaseDirectory, "fixtures", "save-v1.json");
         GuildSave save = SaveSerializer.Load(File.ReadAllText(path));
 
-        Assert.Equal(1, save.Version);
+        Assert.Equal(SaveMigrations.CurrentVersion, save.Version); // v1 fixture migrated to current
         Assert.Equal("The Founders", save.Guild.Name);
         Assert.Equal(2, save.Roster.Count);
         Assert.Equal("guardian", save.Roster[0].ClassId);
+        Assert.Equal(1, save.Roster[0].Level); // migration backfilled progression
+        Assert.NotNull(save.History);           // migration added the history log
     }
 }
