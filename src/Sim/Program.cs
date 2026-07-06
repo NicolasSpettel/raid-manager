@@ -32,10 +32,51 @@ internal static class SimCli
             return RunBalance(ParseInt(args, "--raids", 6), ParseSeed(args));
         }
 
+        if (args is ["world", ..])
+        {
+            return RunWorld(ParseSeed(args), ParseInt(args, "--guilds", WorldConfig.Default.GuildCount));
+        }
+
         Console.Error.WriteLine("usage: sim run <dummy|trio|caster|raid|warden|spatial|classraid> --seed <N>");
         Console.Error.WriteLine("       sim campaign --raids <N> --seed <N> --boss <id> --difficulty <normal|heroic|mythic>");
         Console.Error.WriteLine("       sim balance --raids <N> --seed <N>   (win-rate matrix over every boss x difficulty)");
+        Console.Error.WriteLine("       sim world --seed <N> --guilds <N>    (generate the living world, print distributions + hash)");
         return 1;
+    }
+
+    // Generate a deterministic world and print its shape: guilds per tier, star curve per tier, role coverage.
+    private static int RunWorld(ulong seed, int guilds)
+    {
+        World world = WorldGen.Generate(seed, WorldConfig.Default with { GuildCount = guilds });
+        var all = world.Raiders.Values.ToList();
+
+        Console.WriteLine(
+            $"== World seed {seed}: {world.Guilds.Count} guilds, {all.Count} raiders ({world.FreeAgents.Count} free agents) ==");
+
+        Console.WriteLine("tier            guilds  avg★   5★-role raiders");
+        foreach (PrestigeTier tier in Enum.GetValues<PrestigeTier>())
+        {
+            var members = world.Guilds.Where(g => g.Tier == tier).SelectMany(g => g.Roster).Select(world.Get).ToList();
+            if (members.Count == 0)
+            {
+                continue;
+            }
+
+            double avgStars = members.Average(r => Ratings.Best(r).HalfStars) / 2.0;
+            int elites = members.Count(r => Ratings.Best(r).HalfStars >= 9); // 4.5★+
+            Console.WriteLine($"{tier,-14} {world.Guilds.Count(g => g.Tier == tier),6} {avgStars,6:0.00} {elites,10}");
+        }
+
+        Console.WriteLine("\narchetype spread:");
+        foreach (IGrouping<string, Raider> grp in all.GroupBy(r => r.ArchetypeId).OrderByDescending(g => g.Count()))
+        {
+            Console.WriteLine($"   {grp.Key,-20} {grp.Count(),5}  ({grp.Count() * 100 / all.Count}%)");
+        }
+
+        int oldest = all.Max(world.AgeOf);
+        int youngest = all.Min(world.AgeOf);
+        Console.WriteLine($"\nage range {youngest}–{oldest}; hash={WorldText.Hash(world)}");
+        return 0;
     }
 
     private static int RunFixture(string fixture, ulong seed)

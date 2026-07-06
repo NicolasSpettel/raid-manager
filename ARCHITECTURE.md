@@ -30,9 +30,14 @@ six existing goldens stayed byte-identical (the spatial fixture is the only one 
 it goes live. The **stage renderer draws** all of it (warning ring, live zone, the dodge), and in-game a raid
 fights the **Sentinel** on a ranked **formation**, so you can watch the raid spread out of the fire. Two-tank
 raids now **swap** on debuff stacks (a fresh off-tank taunts when the active tank over-stacks — the locked
-taunt-window design). `dotnet build -warnaserror` + `dotnet test` green (89 tests).
-**Next (post-slice):** trait-driven *quality* on the reactive systems (dodge/swap timing from attributes,
-like `ExecutionProfile`), and authored texture PNGs + a display font (the last visual polish). Plans:
+taunt-window design).
+**Living world (first slice, headless):** `WorldGen` turns a seed into **~6,500 coherent characters** — 200
+guilds across a prestige pyramid + 400 free agents — via the latent-factor pipeline (entities-and-worldgen):
+archetypes → latents → registry-keyed attributes → derived stars, all deterministic (a world-gen golden) and
+coherent (elite guilds field stronger raiders, ages sit in a 16–30 band, no twitchy veterans). Run it with
+`sim world --seed N`. `dotnet build -warnaserror` + `dotnet test` green (97 tests).
+**Next (world):** the season/calendar loop + the AI-guild progression **race** (the living-world sim on top
+of this baseline), then contracts/transfers and the raider career ledger (seed+delta persistence).
 **[docs/m1-build-plan.md](docs/m1-build-plan.md)** · **[docs/m2-build-plan.md](docs/m2-build-plan.md)**.
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)
@@ -137,8 +142,8 @@ M0 foundation built and green. Each module gets one line: what it owns, what it 
 | Module | Owns (M0 state) | Must not know about |
 |---|---|---|
 | `src/Engine` | Deterministic sim core: `SeededRng`, `Tick`/`TimeModel`, combatant model, scheduled `ActionQueue`, abilities & casts (`DirectDamage`/`DirectHeal` + GCD/cooldown/priority/resource), role-aware targeting, threat/tanking (enemies focus the highest-threat raider; tanks generate ×4 threat), `ExecutionProfile` (reaction delay), auras (`AuraDef` — DoTs + stacking damage-taken debuffs), encounter model (`EncounterDef` phases + mechanic timeline; `MechanicArchetype` runtime: spread / buster / enrage / raid-DoT / tank-debuff / interruptible-cast), interrupts, `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` | Content · Game · App · Godot — references nothing in the solution |
-| `src/Content` | Ability registry (`AbilityRow` → `AbilityDef`, generated `Tooltips`), class roster (`Classes` + `createRaider` factory), encounter catalog (`Encounters`: Warden, Sentinel, Ashen King, Frostwarden — tiers 1–3), difficulty scaling (`Difficulties`: Normal/Heroic/Mythic), item catalog (`Items` + per-encounter `Loot`), `ContentFixtures` | Game · App · Godot |
-| `src/Game` | The management layer: `GuildSave` aggregate (guild + roster + gear + injuries + economy + raid history), `SaveMigrations` (v4, real chained v1→v2→v3→v4), `SaveSerializer`, atomic `FileStorageAdapter`, `SaveService`, `Guilds.CreateStarter`, `Warband` (projects raiders → combatants, folding gear + injury penalty), `Campaign` (headless N-raid loop), `Recruitment` (hire raiders for gold), and `RaidResolver` (folds a fight into gold / loot / injuries + a `RaidSummary`) | App · Godot |
+| `src/Content` | Ability registry (`AbilityRow` → `AbilityDef`, generated `Tooltips`), class roster (`Classes` + `createRaider` factory), encounter catalog (`Encounters`: Warden, Sentinel, Ashen King, Frostwarden — tiers 1–3), difficulty scaling (`Difficulties`: Normal/Heroic/Mythic), item catalog (`Items` + per-encounter `Loot`), `ContentFixtures`, **world registries** (`Attributes` — the 11 raider attributes + latent loadings; `Archetypes` — world-gen profiles + prestige weights; `NamePools`) | Game · App · Godot |
+| `src/Game` | The management layer: `GuildSave` aggregate (guild + roster + gear + injuries + economy + raid history), `SaveMigrations` (v4, real chained v1→v2→v3→v4), `SaveSerializer`, atomic `FileStorageAdapter`, `SaveService`, `Guilds.CreateStarter`, `Warband` (projects raiders → combatants, folding gear + injury penalty), `Campaign` (headless N-raid loop), `Recruitment` (hire raiders for gold), `RaidResolver` (folds a fight into gold / loot / injuries + a `RaidSummary`), and **`World/`** — the composition entity model (`Raider` = identity/vocation/attributes/condition components), the deterministic `WorldGen` latent-factor pipeline (~6,500 characters from a seed), `Ratings` (stars derived on read), and `WorldText` (canonical serialize + golden hash) | App · Godot |
 | `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |
 | `src/App` | Godot 4.7 C#: `AppTheme` (carved-stone `Theme` + procedural stone backdrop), `Main` coordinator (guild → roster → raid → Log/Stage playback → save; difficulty, rest, recruit), `RosterView`, `CombatView` (log playback), `StageView` (2D board playback). Both views are pure consumers of the same event stream. **The only Godot-referencing project.** | — |
 | `tests/Engine.Tests` | Golden (dummy/trio/caster hashes + full-stream snapshot) + determinism + outcome/cast behavioral coverage | — |

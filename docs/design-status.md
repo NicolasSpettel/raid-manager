@@ -14,7 +14,7 @@
 | Class kit *framework* (axes, states, raid utility, interrupts/dispels, cast-commitment) | GDD §8d/§8e |
 | Healer & tank *templates* (kit shape, mana clock, taunt window) + 2 reference kits each | GDD §8f/§8g |
 | Combat replay view (WCL-style arena, telegraphs, feasibility triage, layout) | GDD §7, ui-design-system §5 |
-| Entity/component model + latent-factor world-gen | entities-and-worldgen |
+| Entity/component model + latent-factor world-gen | entities-and-worldgen — **first slice BUILT** (`src/Game/World`): deterministic `WorldGen` (~6,500 chars/seed), composition `Raider`, derived stars, world-gen golden. Contracts/career-ledger + season sim still to come. |
 | Persistence: seed + deltas + season compaction + Chronicle | ADR-0007, save-format |
 | Aging & career arc | GDD §8 |
 | Architecture: engine, Godot+C# stack, boundaries, testing, Principle 0 | BLUEPRINT, ADRs, testing-strategy |
