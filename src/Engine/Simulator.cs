@@ -199,6 +199,11 @@ public static class Simulator
         Combatant? bestTarget = null;
         foreach (AbilityDef ability in actor.Abilities)
         {
+            if (ability.Effect is InterruptEffect)
+            {
+                continue; // interrupts are reactive — used against boss casts, never picked proactively
+            }
+
             if (tick < actor.CooldownReadyAt(ability.Id) || actor.Resource < ability.ResourceCost)
             {
                 continue;
@@ -480,7 +485,43 @@ public static class Simulator
                 }
 
                 break;
+
+            case MechanicArchetype.InterruptibleCast:
+                ctx.Emit(new MechanicEvent(new Tick(tick), mechanic.Id, "cast"));
+                if (TryInterrupt(ctx, tick))
+                {
+                    ctx.Emit(new MechanicEvent(new Tick(tick), mechanic.Id, "interrupted"));
+                }
+                else
+                {
+                    var castId = new AbilityId(mechanic.Id);
+                    foreach (Combatant r in ctx.SpawnOrder)
+                    {
+                        if (r.Side == Side.Raid && r.IsAlive)
+                        {
+                            DealDamage(ctx, boss, r, Scale(boss, mechanic.Amount), castId, tick);
+                        }
+                    }
+
+                    ctx.Emit(new MechanicEvent(new Tick(tick), mechanic.Id, "landed"));
+                }
+
+                break;
         }
+    }
+
+    // The first alive raider with a ready interrupt spends it; used against boss interruptible casts.
+    private static bool TryInterrupt(SimContext ctx, int tick)
+    {
+        foreach (Combatant c in ctx.SpawnOrder)
+        {
+            if (c.Side == Side.Raid && c.IsAlive && c.TryUseInterrupt(tick))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void MaybeAdvancePhase(SimContext ctx, int tick)

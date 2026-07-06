@@ -9,6 +9,7 @@ public enum AbilityKind
 {
     Damage,
     Heal,
+    Interrupt,
 }
 
 /// <summary>
@@ -40,7 +41,12 @@ public sealed record AbilityRow(
         GcdTicks,
         CooldownTicks,
         Priority,
-        Kind == AbilityKind.Heal ? new DirectHeal(Amount, Variance) : new DirectDamage(Amount, Variance, School),
+        Kind switch
+        {
+            AbilityKind.Heal => new DirectHeal(Amount, Variance),
+            AbilityKind.Interrupt => new InterruptEffect(),
+            _ => new DirectDamage(Amount, Variance, School),
+        },
         ResourceCost);
 
     /// <summary>The fields a tooltip may reference — the single source of truth is this row's own data.</summary>

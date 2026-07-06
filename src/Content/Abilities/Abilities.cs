@@ -71,5 +71,15 @@ public static class Abilities
             Id: "paladin.consecrate", Name: "Consecrate", ClassId: "paladin", SpecId: "protection",
             CastTicks: 0, GcdTicks: 15, CooldownTicks: 40, Amount: 24, Variance: 8, School: DamageSchool.Physical,
             Priority: 60, Tooltip: "Scorches the ground for {amount} {school} damage. {cooldownSeconds}s cooldown."),
+
+        // Interrupts (utility, reactive — stop a boss cast)
+        new AbilityRow(
+            Id: "blademaster.pummel", Name: "Pummel", ClassId: "blademaster", SpecId: "arms",
+            CastTicks: 0, GcdTicks: 15, CooldownTicks: 60, Amount: 0, Variance: 0, School: DamageSchool.Physical,
+            Priority: 0, Tooltip: "Interrupts an enemy cast. {cooldownSeconds}s cooldown.", Kind: AbilityKind.Interrupt),
+        new AbilityRow(
+            Id: "ranger.muzzle", Name: "Muzzle", ClassId: "ranger", SpecId: "marksman",
+            CastTicks: 0, GcdTicks: 15, CooldownTicks: 60, Amount: 0, Variance: 0, School: DamageSchool.Physical,
+            Priority: 0, Tooltip: "Interrupts an enemy cast. {cooldownSeconds}s cooldown.", Kind: AbilityKind.Interrupt),
     });
 }

@@ -22,6 +22,9 @@ public enum MechanicArchetype
 
     /// <summary>Stacks a debuff on the boss's current target that adds <c>+Amount%</c> damage taken per stack.</summary>
     TankDebuff,
+
+    /// <summary>The boss casts a dangerous spell; a raider with a ready interrupt stops it, else it lands (<c>Amount</c> raid-wide).</summary>
+    InterruptibleCast,
 }
 
 /// <summary>When a mechanic fires: once at a tick, or repeating from a start tick.</summary>

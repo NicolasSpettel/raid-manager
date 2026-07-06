@@ -21,6 +21,9 @@ public sealed record DirectDamage(int Amount, int Variance, DamageSchool School)
 /// <summary>Restore <c>Amount + [0, Variance)</c> health to the most-injured ally.</summary>
 public sealed record DirectHeal(int Amount, int Variance) : AbilityEffect;
 
+/// <summary>A utility interrupt — stops an enemy's interruptible cast. Reactive; never cast proactively.</summary>
+public sealed record InterruptEffect : AbilityEffect;
+
 /// <summary>
 /// The mechanical definition of an ability, as the engine executes it. Content authors richer rows
 /// (name, tooltip) and projects them to this via a factory — the engine stays Content-agnostic.

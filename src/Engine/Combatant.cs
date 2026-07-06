@@ -142,4 +142,19 @@ internal sealed class Combatant
     public int CooldownReadyAt(AbilityId id) => _cooldownReadyAt.TryGetValue(id, out int t) ? t : 0;
 
     public void SetCooldownReadyAt(AbilityId id, int tick) => _cooldownReadyAt[id] = tick;
+
+    /// <summary>Spend a ready interrupt ability (putting it on cooldown) if this combatant has one. Reactive.</summary>
+    public bool TryUseInterrupt(int tick)
+    {
+        foreach (AbilityDef ability in Abilities)
+        {
+            if (ability.Effect is InterruptEffect && tick >= CooldownReadyAt(ability.Id))
+            {
+                SetCooldownReadyAt(ability.Id, tick + ability.CooldownTicks);
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

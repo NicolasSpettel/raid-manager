@@ -55,6 +55,7 @@ public static class Encounters
         new[]
         {
             new MechanicInstance("frost.debuff", MechanicArchetype.TankDebuff, MechanicSchedule.Repeating(18, 18), 14),
+            new MechanicInstance("frost.icebolt", MechanicArchetype.InterruptibleCast, MechanicSchedule.Repeating(24, 24), 130),
             new MechanicInstance("frost.buster", MechanicArchetype.TankBuster, MechanicSchedule.Repeating(26, 26), 100),
             new MechanicInstance("frost.dot", MechanicArchetype.RaidDot, MechanicSchedule.Repeating(30, 30), 8),
             new MechanicInstance("frost.spread", MechanicArchetype.SpreadDamage, MechanicSchedule.Repeating(12, 18), 30, Phase: 1),

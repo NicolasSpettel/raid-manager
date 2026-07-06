@@ -23,7 +23,7 @@ public static class Classes
     public static ClassDef Blademaster { get; } = new(
         "blademaster", "Blademaster", CombatantRole.Melee,
         new StatBlock(MaxHp: 500, AttackDamage: 12, AttackVariance: 4, SwingIntervalTicks: 4),
-        new[] { "blademaster.mortal_strike" });
+        new[] { "blademaster.mortal_strike", "blademaster.pummel" });
 
     public static ClassDef Pyromancer { get; } = new(
         "pyromancer", "Pyromancer", CombatantRole.Ranged,
@@ -34,7 +34,7 @@ public static class Classes
     public static ClassDef Ranger { get; } = new(
         "ranger", "Ranger", CombatantRole.Ranged,
         new StatBlock(MaxHp: 440, AttackDamage: 8, AttackVariance: 3, SwingIntervalTicks: 5),
-        new[] { "ranger.aimed_shot" });
+        new[] { "ranger.aimed_shot", "ranger.muzzle" });
 
     public static ClassDef Warlock { get; } = new(
         "warlock", "Warlock", CombatantRole.Ranged,

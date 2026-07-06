@@ -59,7 +59,9 @@ attribute set. **Exit:** a healer keeps a tank alive; a sloppy raider visibly un
 instances, interpreted by **one generic runtime**. **Archetypes: `spreadDamage`, `tankBuster`,
 `enrage`, plus `raidDot` and `tankDebuff`** (post-slice, once the **aura system** landed — DoTs +
 stacking damage-taken debuffs; `tankDebuff` is the `tankSwapDebuff` idea minus the taunt-swap, which
-needs threat). `interruptibleCast` still needs raid interrupts. The Ashen King (tier 2) uses the aura set. Two-phase
+needs threat) and **`interruptibleCast`** (raider interrupts vs boss casts — an interrupt-rotation
+pressure). Only threat-based taunt-swaps remain deferred. The Ashen King (tier 2) and Frostwarden
+(tier 3) use these. Two-phase
 boss (Warden, HP&lt;50% → Frenzy, phase-gated mechanic) + a second authored boss (Sentinel) prove
 **encounter #2 = one new row** ([Content/Encounters](../src/Content/Encounters/Encounters.cs)). Golden +
 behavioral tests green.
