@@ -13,7 +13,20 @@ public static class WeeklyActivities
 {
     private const int TrainCap = 18; // trained up to here (headroom below 20)
 
-    /// <summary>Raise the raider's single lowest (sub-cap) attribute by one — one targeted training session.</summary>
+    /// <summary>Raise a specific attribute by one (capped) — a raider training their chosen focus (GDD §8).</summary>
+    public static RaiderRecord TrainToward(RaiderRecord raider, string attributeId)
+    {
+        if (raider.Attributes is null || raider.Attributes.Of(attributeId) >= TrainCap)
+        {
+            return raider;
+        }
+
+        var values = Attributes.Registry.All.ToDictionary(a => a.Id, a => raider.Attributes.Of(a.Id), System.StringComparer.Ordinal);
+        values[attributeId] += 1;
+        return raider with { Attributes = new AttributeVector(values) };
+    }
+
+    /// <summary>Raise the raider's single lowest (sub-cap) attribute by one — auto-training (no chosen focus).</summary>
     public static RaiderRecord Train(RaiderRecord raider)
     {
         if (raider.Attributes is null)

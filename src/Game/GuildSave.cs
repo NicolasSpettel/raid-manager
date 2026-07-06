@@ -20,6 +20,7 @@ public sealed record GuildSave(
     ulong WorldSeed = 0,
     int GeneratorVersion = 0,
     string? ManagerGuildId = null,
+    int SeasonNumber = 1,                       // which season of the career (advances the world clock → aging)
     int SeasonWeek = 1,
     int SeasonDay = 0,                          // 0=Monday … 6=Sunday within the current week
     IReadOnlyList<string>? DownedThisWeek = null); // weekly lockout: bosses looted since the last Monday reset
@@ -49,7 +50,8 @@ public sealed record RaiderRecord(
     Identity? Identity = null,
     Vocation? Vocation = null,
     string? ArchetypeId = null,
-    GuildId? Membership = null);
+    GuildId? Membership = null,
+    string? TrainingTarget = null); // the attribute this raider is training toward (null = train the weakest)
 
 /// <summary>Guild finances (M1: gold only).</summary>
 public sealed record Economy(int Gold);

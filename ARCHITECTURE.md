@@ -62,9 +62,12 @@ world roster — attributes + condition intact — into the playable save) → *
 now **persists its living world** (ADR-0007 first slice): the save pins `WorldSeed` + `GeneratorVersion` +
 `ManagerGuildId` + `SeasonWeek` and materialises your guild, so the world regenerates byte-identically from
 the seed on reload. The **Calendar** is a **4-slot-per-day grid** (§6's noon/afternoon/evening/night): fill each day's four
-slots with guild activities and **simulate a day or a week** (`DayExecutor`) — a raid slot runs a raid night
-(under the weekly lockout), dungeons gear, training develops, and each raider's freshness/injury move with
-how busy the day was. The day/week clock + weekly lockout persist. `dotnet build -warnaserror` + `dotnet test` green (160 tests).
+slots with guild activities and **simulate a day** or **continue to the next raid** (`DayExecutor`; the
+fast-forward stops *before* raid days, FM-style). Dungeons gear, training develops the stat **you choose per
+raider** (their unit page), and freshness/injury move with the day's load. At the **season boundary the roster
+ages** (`Aging`, GDD §8): youth develop toward potential, veterans decline (twitch↓/wisdom↑), ~31-year-olds
+retire and a youth steps in — the career runs season after season. Clock + lockout + season number persist.
+`dotnet build -warnaserror` + `dotnet test` green (165 tests).
 **Next (world):** balance the load/injury rates, richer activities (professions/quests/drills), the inbox that
 surfaces the week's events, contracts/transfers, and collapsing the two raider models (`RaiderRecord` ↔ world `Raider`) into one type.
 **[docs/m1-build-plan.md](docs/m1-build-plan.md)** · **[docs/m2-build-plan.md](docs/m2-build-plan.md)**.

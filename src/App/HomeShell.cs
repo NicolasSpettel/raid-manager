@@ -165,7 +165,7 @@ public partial class HomeShell : Control
         col.AddChild(Header("Dashboard"));
         col.AddChild(new Label { Text = $"Squad: {_guild.Roster.Count} raiders    ·    Raids fought: {_guild.History.Count}" });
         col.AddChild(new Label { Text = $"Board expects: {_guild.Guild.BoardExpectation ?? "settle in and see what you've got."}" });
-        col.AddChild(Dim($"Season: week {_guild.SeasonWeek} of 12   ·   in a living world of ~200 guilds"));
+        col.AddChild(Dim($"Season {_guild.SeasonNumber}, week {_guild.SeasonWeek} of 12   ·   in a living world of ~200 guilds"));
 
         SeasonSchedule calendar = SeasonSchedule.Build(12);
         CalendarEvent? next = calendar.Upcoming(_guild.SeasonWeek, 1).FirstOrDefault();
@@ -191,16 +191,9 @@ public partial class HomeShell : Control
         col.AddChild(Header("Calendar"));
 
         int week = _guild.SeasonWeek;
-        if (week > seasonWeeks)
-        {
-            col.AddChild(new Label { Text = $"The season is over — {_guild.History.Count} raids fought." });
-            col.AddChild(Dim("New seasons + aging are the next step."));
-            return Wrap(col);
-        }
-
         int today = _guild.SeasonDay;
         SeasonSchedule calendar = SeasonSchedule.Build(seasonWeeks);
-        col.AddChild(new Label { Text = $"Week {week} of {seasonWeeks}   ·   {(Weekday)today}" });
+        col.AddChild(new Label { Text = $"Season {_guild.SeasonNumber}   ·   Week {week} of {seasonWeeks}   ·   {(Weekday)today}" });
         CalendarEvent? holiday = calendar.HolidayIn(week);
         if (holiday is not null)
         {
@@ -251,7 +244,7 @@ public partial class HomeShell : Control
         actions.AddThemeConstantOverride("separation", 10);
         var simDay = new Button { Text = "Simulate day", CustomMinimumSize = new Vector2(150, 42) };
         simDay.Pressed += () => _onSimulateDay(_slots!);
-        var simWeek = new Button { Text = "Simulate week", CustomMinimumSize = new Vector2(150, 42) };
+        var simWeek = new Button { Text = "Continue to next raid", CustomMinimumSize = new Vector2(190, 42) };
         simWeek.Pressed += () => _onSimulateWeek(_slots!);
         actions.AddChild(simDay);
         actions.AddChild(simWeek);

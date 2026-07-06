@@ -77,10 +77,13 @@ public static class DayExecutor
         int trainingSessions = 0;
         for (int i = 0; i < trainSlots; i++)
         {
-            foreach (int idx in LeastDeveloped(roster, 3))
+            foreach (int idx in TrainingPicks(roster, 4))
             {
-                RaiderRecord trained = WeeklyActivities.Train(roster[idx]);
-                if (!ReferenceEquals(trained, roster[idx]))
+                RaiderRecord before = roster[idx];
+                RaiderRecord trained = before.TrainingTarget is { } target
+                    ? WeeklyActivities.TrainToward(before, target) // the raider trains their chosen stat
+                    : WeeklyActivities.Train(before);              // otherwise auto-train the weakest
+                if (!ReferenceEquals(trained, before))
                 {
                     roster[idx] = trained;
                     trainingSessions++;
@@ -134,6 +137,19 @@ public static class DayExecutor
         }
 
         return best;
+    }
+
+    // Who trains on a training slot: raiders with a chosen focus first, then the least-developed to fill.
+    private static List<int> TrainingPicks(List<RaiderRecord> roster, int count)
+    {
+        var targeted = Enumerable.Range(0, roster.Count).Where(i => roster[i].TrainingTarget is not null).ToList();
+        if (targeted.Count >= count)
+        {
+            return targeted.Take(count).ToList();
+        }
+
+        var fill = LeastDeveloped(roster, roster.Count).Where(i => !targeted.Contains(i)).Take(count - targeted.Count);
+        return targeted.Concat(fill).ToList();
     }
 
     private static List<int> LeastDeveloped(List<RaiderRecord> roster, int count) => Enumerable

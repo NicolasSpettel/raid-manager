@@ -168,69 +168,90 @@ public partial class Main : Control
     // Simulate the current day of the 4-slot calendar (GDD §6), advancing the clock.
     private void SimulateDay(IReadOnlyList<IReadOnlyList<ActivityType>> weekPlan)
     {
-        if (_guild.SeasonWeek > SeasonWeeks)
-        {
-            ShowHome("Calendar");
-            return;
-        }
-
         int ranDay = _guild.SeasonDay;
-        (_guild, DayResult result) = StepDay(_guild, weekPlan);
+        (_guild, DayResult result, IReadOnlyList<string> seasonEvents) = StepDay(_guild, weekPlan);
         _saves.Save(_guild);
         _lastWeekSummary =
-            $"{(Weekday)ranDay}: {result.Kills} kills, +{result.GearDrops} gear, {result.TrainingSessions} trained, {result.Injured} hurt.";
+            $"{(Weekday)ranDay}: {result.Kills} kills, +{result.GearDrops} gear, {result.TrainingSessions} trained, {result.Injured} hurt."
+            + SeasonNote(seasonEvents);
         ShowHome("Calendar");
     }
 
-    // Simulate the rest of the current week, day by day.
+    private static string SeasonNote(IReadOnlyList<string> seasonEvents) =>
+        seasonEvents.Count == 0 ? string.Empty : "   ★ New season! " + string.Join("  ", seasonEvents.Take(3));
+
+    // Fast-forward through non-raid days, stopping right before the next raid day (rolling into the next
+    // week if this one has none) — FM's "continue until something matters", so you never auto-play a raid.
     private void SimulateWeek(IReadOnlyList<IReadOnlyList<ActivityType>> weekPlan)
     {
-        if (_guild.SeasonWeek > SeasonWeeks)
+        int kills = 0, gear = 0, trained = 0, hurt = 0, days = 0;
+        var seasonEvents = new System.Collections.Generic.List<string>();
+        while (!weekPlan[_guild.SeasonDay].Contains(ActivityType.Raid) && days < 366) // stop at the next raid day (bounded)
         {
-            ShowHome("Calendar");
-            return;
-        }
-
-        int startWeek = _guild.SeasonWeek;
-        int kills = 0, gear = 0, trained = 0, hurt = 0;
-        while (_guild.SeasonWeek == startWeek && _guild.SeasonWeek <= SeasonWeeks)
-        {
-            (_guild, DayResult result) = StepDay(_guild, weekPlan);
+            (_guild, DayResult result, IReadOnlyList<string> rolled) = StepDay(_guild, weekPlan);
             kills += result.Kills;
             gear += result.GearDrops;
             trained += result.TrainingSessions;
             hurt += result.Injured;
+            seasonEvents.AddRange(rolled);
+            days++;
         }
 
         _saves.Save(_guild);
-        _lastWeekSummary = $"Week {startWeek}: {kills} kills, +{gear} gear, {trained} trained, {hurt} hurt.";
+        _lastWeekSummary = (days == 0
+            ? "A raid day — set the day's plan, then Simulate day to run it."
+            : $"Advanced {days} day(s): {kills} kills, +{gear} gear, {trained} trained, {hurt} hurt.")
+            + SeasonNote(seasonEvents);
         ShowHome("Calendar");
     }
 
-    // Run the current day and advance the day/week clock (weekly reset clears the lockout).
-    private (GuildSave Guild, DayResult Result) StepDay(GuildSave guild, IReadOnlyList<IReadOnlyList<ActivityType>> weekPlan)
+    // Run the current day and advance the clock. The weekly reset clears the lockout; the season boundary
+    // (past week 12) rolls to a new season and ages the roster (GDD §8).
+    private (GuildSave Guild, DayResult Result, IReadOnlyList<string> SeasonEvents) StepDay(
+        GuildSave guild, IReadOnlyList<IReadOnlyList<ActivityType>> weekPlan)
     {
         int week = guild.SeasonWeek;
         int day = guild.SeasonDay;
         IReadOnlyList<string> downed = guild.DownedThisWeek ?? System.Array.Empty<string>();
-        ulong seed = unchecked(guild.WorldSeed + ((ulong)((week * 100) + day) * 0x9E3779B1UL));
+        ulong seed = unchecked(guild.WorldSeed + ((ulong)(((guild.SeasonNumber * 10000) + (week * 100)) + day) * 0x9E3779B1UL));
 
         DayResult result = DayExecutor.RunDay(guild, weekPlan[day], Encounters.All, week, day, downed, _difficulty, seed);
         guild = result.Guild with { DownedThisWeek = result.DownedThisWeek };
 
-        guild = day >= 6
-            ? guild with { SeasonWeek = week + 1, SeasonDay = 0, DownedThisWeek = System.Array.Empty<string>() }
-            : guild with { SeasonDay = day + 1 };
+        IReadOnlyList<string> seasonEvents = System.Array.Empty<string>();
+        if (day < 6)
+        {
+            guild = guild with { SeasonDay = day + 1 };
+        }
+        else if (week < SeasonWeeks)
+        {
+            guild = guild with { SeasonWeek = week + 1, SeasonDay = 0, DownedThisWeek = System.Array.Empty<string>() };
+        }
+        else
+        {
+            int nextSeason = guild.SeasonNumber + 1; // season boundary → age the roster, start season N+1
+            AgingResult aged = Aging.AdvanceSeason(guild, nextSeason);
+            guild = aged.Guild with { SeasonNumber = nextSeason, SeasonWeek = 1, SeasonDay = 0, DownedThisWeek = System.Array.Empty<string>() };
+            seasonEvents = aged.Events;
+        }
 
-        return (guild, result);
+        return (guild, result, seasonEvents);
     }
 
     private void ShowRaider(RaiderRecord raider)
     {
         var view = new RaiderView();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
-        view.Load(raider, onBack: () => ShowHome("Squad"));
+        view.Load(raider, _guild.SeasonNumber, onBack: () => ShowHome("Squad"), onSetTraining: target => SetTraining(raider.Id, target));
         Swap(view);
+    }
+
+    // Set a raider's training focus (which attribute they develop). Persisted; the calendar's training uses it.
+    private void SetTraining(string raiderId, string? attributeId)
+    {
+        var roster = _guild.Roster.Select(r => r.Id == raiderId ? r with { TrainingTarget = attributeId } : r).ToList();
+        _guild = _guild with { Roster = roster };
+        _saves.Save(_guild);
     }
 
     private void Rest()

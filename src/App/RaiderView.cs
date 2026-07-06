@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Content;
 using Game;
 using Godot;
@@ -11,7 +12,7 @@ namespace App;
 /// </summary>
 public partial class RaiderView : Control
 {
-    public void Load(RaiderRecord raider, Action onBack)
+    public void Load(RaiderRecord raider, int seasonNumber, Action onBack, Action<string?> onSetTraining)
     {
         ArgumentNullException.ThrowIfNull(raider);
 
@@ -46,9 +47,28 @@ public partial class RaiderView : Control
 
         ClassDef cls = Classes.Registry.Get(raider.ClassId);
         string injury = raider.InjuryRaidsLeft > 0 ? $"   —   injured ({raider.InjuryRaidsLeft} raids out)" : string.Empty;
-        var subtitle = new Label { Text = $"{cls.Name}  ({cls.Role}){injury}" };
+        var subtitle = new Label { Text = $"{cls.Name}  ({cls.Role})   ·   age {Aging.AgeOf(raider, seasonNumber)}{injury}" };
         subtitle.AddThemeColorOverride("font_color", new Color("#9a9486"));
         root.AddChild(subtitle);
+
+        root.AddChild(Header("Training focus"));
+        var focus = new OptionButton { CustomMinimumSize = new Vector2(240, 0) };
+        var focusIds = new List<string?> { null };
+        focus.AddItem("Auto (train weakest)");
+        int selected = 0;
+        foreach (AttributeDef attr in Attributes.Registry.All)
+        {
+            focus.AddItem(attr.Name);
+            focusIds.Add(attr.Id);
+            if (attr.Id == raider.TrainingTarget)
+            {
+                selected = focusIds.Count - 1;
+            }
+        }
+
+        focus.Selected = selected;
+        focus.ItemSelected += index => onSetTraining(focusIds[(int)index]);
+        root.AddChild(focus);
 
         Condition condition = raider.Condition ?? ConditionModel.Fresh;
         root.AddChild(Header("Condition"));
