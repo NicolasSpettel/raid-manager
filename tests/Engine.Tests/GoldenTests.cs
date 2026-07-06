@@ -13,10 +13,10 @@ public class GoldenTests
     // Blessed from `dotnet run --project src/Sim -- run <fixture> --seed 1`.
     // If either changes unexpectedly, it is a determinism bug — do NOT blindly re-bless.
     private const string DummySeed1Hash = "ac330b5fa219abde";
-    private const string TrioSeed1Hash = "64d40873d7747ca7";
+    private const string TrioSeed1Hash = "c3b0c2d2083ec31e"; // re-blessed: boss now targets by threat
     private const string CasterSeed1Hash = "46075b526d3c8ba4";
-    private const string RaidSeed1Hash = "5a9672081a761158";
-    private const string WardenSeed1Hash = "e95afd3602b8207c";
+    private const string RaidSeed1Hash = "1192a331340eedd2"; // re-blessed: threat-based targeting
+    private const string WardenSeed1Hash = "35fe5cade4a7c1fd"; // re-blessed: threat-based targeting
 
     // Joined with an explicit '\n' (never a source multi-line literal) so the expected value can
     // never depend on this file's on-disk line endings.

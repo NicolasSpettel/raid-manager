@@ -250,6 +250,11 @@ public static class Simulator
     {
         int taken = amount * target.DamageTakenMultPct / 100; // debuff stacks raise damage taken
         target.Hp -= taken;
+        if (source.Side == Side.Raid && target.Side == Side.Enemy)
+        {
+            source.Threat += taken * source.ThreatMult;
+        }
+
         ctx.Emit(new Damage(new Tick(tick), source.Id, target.Id, taken, ability));
         if (!target.IsAlive)
         {
@@ -321,6 +326,7 @@ public static class Simulator
         int before = target.Hp;
         int after = Math.Min(target.MaxHp, before + raw);
         target.Hp = after;
+        source.Threat += (after - before) * source.ThreatMult; // healing generates threat too
         ctx.Emit(new Heal(new Tick(tick), source.Id, target.Id, after - before, ability, raw - (after - before)));
     }
 

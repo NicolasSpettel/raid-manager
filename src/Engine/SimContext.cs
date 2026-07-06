@@ -74,13 +74,30 @@ internal sealed class SimContext
         return false;
     }
 
-    /// <summary>First alive combatant on the opposing side, in spawn order. Threat/tanking arrives later.</summary>
+    /// <summary>
+    /// The target an actor attacks. A raider hits the first alive enemy (spawn order); an enemy hits the
+    /// highest-threat alive raider (tanking) — ties break by spawn order, so at 0 threat the tank (spawned
+    /// first) is picked.
+    /// </summary>
     public Combatant? PickEnemy(Combatant actor)
     {
-        Side enemySide = actor.Side == Side.Raid ? Side.Enemy : Side.Raid;
+        if (actor.Side == Side.Enemy)
+        {
+            Combatant? top = null;
+            foreach (Combatant c in _spawnOrder)
+            {
+                if (c.Side == Side.Raid && c.IsAlive && (top is null || c.Threat > top.Threat))
+                {
+                    top = c;
+                }
+            }
+
+            return top;
+        }
+
         foreach (Combatant c in _spawnOrder)
         {
-            if (c.Side == enemySide && c.IsAlive)
+            if (c.Side == Side.Enemy && c.IsAlive)
             {
                 return c;
             }

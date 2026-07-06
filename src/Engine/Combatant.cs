@@ -89,6 +89,12 @@ internal sealed class Combatant
     /// <summary>Percent multiplier on damage this combatant deals (100 = normal). Raised by Enrage.</summary>
     public int DamageDealtMultPct { get; set; } = 100;
 
+    /// <summary>Accumulated threat. An enemy targets the highest-threat raider (tanking).</summary>
+    public int Threat { get; set; }
+
+    /// <summary>Threat generated per point of damage/healing — tanks generate far more, so they hold aggro.</summary>
+    public int ThreatMult => Spec.Role == CombatantRole.Tank ? 4 : 1;
+
     /// <summary>Percent multiplier on damage this combatant takes (100 = normal). Raised by debuff stacks.</summary>
     public int DamageTakenMultPct
     {

@@ -20,10 +20,11 @@ tier-2 boss (the Ashen King), and **difficulty tiers** (Normal/Heroic/Mythic) sc
 guild clears the Ashen King on Normal but wipes it on Mythic; fallen raiders are **injured** and fight
 weaker until they recover (so roster depth matters). **M2 step 1 is in:** a 2D **stage renderer** (tokens,
 live HP, telegraph flashes) sits behind a **Log ↔ Stage toggle** — a second pure consumer of the same
-event stream. `dotnet build -warnaserror` + `dotnet test` green (70 tests).
-**Next (post-slice):** the authored **textured `Theme`** + display font (the gritty look), threat-based
-taunt-swaps + the `interruptibleCast` archetype, and **M2 step 2** — engine positions (fixed-point 2D) +
-move events + telegraph geometry (stand-in-fire), then a richer sprite pass. Plans:
+event stream. Combat now has **threat/tanking** and **interruptible casts** too; the theme is **procedurally
+textured** (stone panels/buttons via `StyleBoxTexture`). `dotnet build -warnaserror` + `dotnet test` green (74 tests).
+**Next (post-slice):** the **taunt / tank-swap** ability, authored texture PNGs + a display font (the last
+visual polish), and **M2 step 2** — engine positions (fixed-point 2D) + move events + telegraph geometry
+(stand-in-fire), then a richer sprite pass. Plans:
 **[docs/m1-build-plan.md](docs/m1-build-plan.md)** · **[docs/m2-build-plan.md](docs/m2-build-plan.md)**.
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)
@@ -127,7 +128,7 @@ M0 foundation built and green. Each module gets one line: what it owns, what it 
 
 | Module | Owns (M0 state) | Must not know about |
 |---|---|---|
-| `src/Engine` | Deterministic sim core: `SeededRng`, `Tick`/`TimeModel`, combatant model, scheduled `ActionQueue`, abilities & casts (`DirectDamage`/`DirectHeal` + GCD/cooldown/priority/resource), role-aware targeting, `ExecutionProfile` (reaction delay), auras (`AuraDef` — DoTs + stacking damage-taken debuffs), encounter model (`EncounterDef` phases + mechanic timeline; `MechanicArchetype` runtime: spread / buster / enrage / raid-DoT / tank-debuff / interruptible-cast), interrupts, `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` | Content · Game · App · Godot — references nothing in the solution |
+| `src/Engine` | Deterministic sim core: `SeededRng`, `Tick`/`TimeModel`, combatant model, scheduled `ActionQueue`, abilities & casts (`DirectDamage`/`DirectHeal` + GCD/cooldown/priority/resource), role-aware targeting, threat/tanking (enemies focus the highest-threat raider; tanks generate ×4 threat), `ExecutionProfile` (reaction delay), auras (`AuraDef` — DoTs + stacking damage-taken debuffs), encounter model (`EncounterDef` phases + mechanic timeline; `MechanicArchetype` runtime: spread / buster / enrage / raid-DoT / tank-debuff / interruptible-cast), interrupts, `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` | Content · Game · App · Godot — references nothing in the solution |
 | `src/Content` | Ability registry (`AbilityRow` → `AbilityDef`, generated `Tooltips`), class roster (`Classes` + `createRaider` factory), encounter catalog (`Encounters`: Warden, Sentinel, Ashen King, Frostwarden — tiers 1–3), difficulty scaling (`Difficulties`: Normal/Heroic/Mythic), item catalog (`Items` + per-encounter `Loot`), `ContentFixtures` | Game · App · Godot |
 | `src/Game` | The management layer: `GuildSave` aggregate (guild + roster + progression + gear + injuries + economy + raid history), `SaveMigrations` (v4, real chained v1→v2→v3→v4), `SaveSerializer`, atomic `FileStorageAdapter`, `SaveService`, `Guilds.CreateStarter`, `Warband` (projects raiders → combatants, folding gear + injury penalty), `Campaign` (headless N-raid loop), `Recruitment` (hire raiders for gold), and `RaidResolver` (folds a fight into gold / XP / levels / loot / injuries + a `RaidSummary`) | App · Godot |
 | `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |
