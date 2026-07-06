@@ -13,7 +13,8 @@ public sealed record GuildProgress(
     int Strength,
     int BossesDown,
     int? ClearedWeek,
-    int LastKillWeek);
+    int LastKillWeek,
+    IReadOnlyList<int> BossKillWeeks); // BossKillWeeks[i] = the week boss i went down (length == BossesDown)
 
 /// <summary>A finished (or in-progress) season race: the raid, the weeks simulated, and the ranked standings.</summary>
 public sealed record SeasonResult(SeasonRaid Raid, int Weeks, IReadOnlyList<GuildProgress> Standings)
@@ -64,6 +65,7 @@ public static class SeasonRace
                     t.Credit -= raid.Bosses[t.BossesDown].Difficulty;
                     t.BossesDown++;
                     t.LastKillWeek = week;
+                    t.KillWeeks.Add(week);
                     if (t.BossesDown == raid.Bosses.Count)
                     {
                         t.ClearedWeek = week;
@@ -74,7 +76,7 @@ public static class SeasonRace
 
         List<GuildProgress> standings = tracks
             .Select(t => new GuildProgress(
-                t.Guild.Id, t.Guild.Name, t.Guild.Region, t.Guild.Tier, t.Strength, t.BossesDown, t.ClearedWeek, t.LastKillWeek))
+                t.Guild.Id, t.Guild.Name, t.Guild.Region, t.Guild.Tier, t.Strength, t.BossesDown, t.ClearedWeek, t.LastKillWeek, t.KillWeeks))
             .OrderByDescending(g => g.BossesDown)
             .ThenBy(g => g.ClearedWeek ?? int.MaxValue)
             .ThenBy(g => g.LastKillWeek == 0 ? int.MaxValue : g.LastKillWeek)
@@ -117,5 +119,7 @@ public static class SeasonRace
         public int LastKillWeek { get; set; }
 
         public int? ClearedWeek { get; set; }
+
+        public List<int> KillWeeks { get; } = new();
     }
 }

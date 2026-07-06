@@ -66,11 +66,18 @@ internal static class SimCli
             Console.WriteLine($"{rank,3}  {g.Name,-28} {g.Tier,-12} {g.Strength,4} {g.BossesDown,6}/{result.Raid.Bosses.Count}  {cleared}");
         }
 
+        SeasonChronicle chronicle = Chronicle.Record(season: 1, result);
+        Console.WriteLine($"\nchampion: {chronicle.Champion ?? "— (nobody cleared)"}");
+        Console.WriteLine("world-firsts:");
+        foreach (WorldFirst wf in chronicle.WorldFirsts)
+        {
+            Console.WriteLine($"   {wf.Boss,-18} {wf.Guild} ({wf.Region}) — week {wf.Week}");
+        }
+
         var cleared100 = result.Standings.Where(g => g.ClearedWeek is not null).ToList();
-        GuildProgress? first = cleared100.FirstOrDefault();
         int hundredth = result.Standings.Count >= 100 ? (result.Standings[99].ClearedWeek ?? 0) : 0;
-        Console.WriteLine($"\npacing: first clear week {(first?.ClearedWeek?.ToString(CultureInfo.InvariantCulture) ?? "—")}; " +
-            $"{cleared100.Count} guilds cleared in {weeks} weeks; rank #100 cleared {(hundredth > 0 ? $"week {hundredth}" : "not yet")}");
+        Console.WriteLine($"\npacing: {cleared100.Count} guilds cleared in {weeks} weeks; " +
+            $"rank #100 cleared {(hundredth > 0 ? $"week {hundredth}" : "not yet")}");
         return 0;
     }
 
