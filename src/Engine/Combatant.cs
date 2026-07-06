@@ -59,7 +59,8 @@ public sealed record CombatantSpec(
     string Name,
     StatBlock Stats,
     IReadOnlyList<AbilityDef>? Abilities = null,
-    ExecutionProfile? Execution = null);
+    ExecutionProfile? Execution = null,
+    Position SpawnPosition = default);
 
 /// <summary>Mutable per-encounter runtime state for one combatant. Engine-internal.</summary>
 internal sealed class Combatant
@@ -72,6 +73,7 @@ internal sealed class Combatant
         Spec = spec;
         Hp = spec.Stats.MaxHp;
         Resource = spec.Stats.MaxResource;
+        Pos = spec.SpawnPosition;
     }
 
     public CombatantSpec Spec { get; }
@@ -91,6 +93,9 @@ internal sealed class Combatant
 
     /// <summary>Accumulated threat. An enemy targets the highest-threat raider (tanking).</summary>
     public int Threat { get; set; }
+
+    /// <summary>Current position (fixed-point 2D). Moves only when running out of a hazard.</summary>
+    public Position Pos { get; set; }
 
     /// <summary>Threat generated per point of damage/healing — tanks generate far more, so they hold aggro.</summary>
     public int ThreatMult => Spec.Role == CombatantRole.Tank ? 4 : 1;

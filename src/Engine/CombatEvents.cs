@@ -70,5 +70,22 @@ public sealed record ResourceChange(Tick Tick, CombatantId Who, int Delta, int N
 /// <summary><paramref name="Victim"/> died.</summary>
 public sealed record Death(Tick Tick, CombatantId Victim) : CombatEvent(Tick);
 
+/// <summary>Whether a ground hazard is appearing or clearing.</summary>
+public enum HazardState
+{
+    Spawn,
+    Expire,
+}
+
+/// <summary>
+/// A ground hazard (void zone) at <paramref name="At"/> with <paramref name="Radius"/> — the telegraph
+/// geometry a spatial renderer draws, and the shape raiders must run out of. Emitted only by spatial
+/// encounters, so non-spatial fights carry no hazard events (their streams are unchanged).
+/// </summary>
+public sealed record HazardEvent(Tick Tick, string Id, Position At, int Radius, HazardState State) : CombatEvent(Tick);
+
+/// <summary><paramref name="Who"/> moved to <paramref name="To"/> (running out of a hazard).</summary>
+public sealed record MoveEvent(Tick Tick, CombatantId Who, Position To) : CombatEvent(Tick);
+
 /// <summary>The encounter resolved with <paramref name="Outcome"/>.</summary>
 public sealed record EncounterEnd(Tick Tick, EncounterOutcome Outcome) : CombatEvent(Tick);

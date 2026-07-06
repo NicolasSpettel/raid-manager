@@ -54,9 +54,13 @@ public static class EventStream
         Heal h => $"HEAL  t={h.Tick} src={h.Source} dst={h.Target} ability={h.Ability} amount={Int(h.Amount)} overheal={Int(h.Overheal)}",
         ResourceChange r => $"RSRC  t={r.Tick} who={r.Who} delta={Int(r.Delta)} now={Int(r.Now)}",
         Death d => $"DEATH t={d.Tick} victim={d.Victim}",
+        HazardEvent h => $"HAZ   t={h.Tick} id={h.Id} at={Pos(h.At)} radius={Int(h.Radius)} state={h.State}",
+        MoveEvent m => $"MOVE  t={m.Tick} who={m.Who} to={Pos(m.To)}",
         EncounterEnd x => $"END   t={x.Tick} outcome={x.Outcome}",
         _ => throw new NotSupportedException($"Unknown event type: {e.GetType().Name}"),
     };
+
+    private static string Pos(Position p) => $"({Int(p.X)},{Int(p.Y)})";
 
     // The ability token appears only for ability damage, so weapon auto-attack lines are unchanged.
     private static string FormatDamage(Damage d) => d.Ability is { } ability

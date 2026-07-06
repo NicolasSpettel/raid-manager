@@ -99,6 +99,9 @@ public static class Simulator
             case ActionKind.AuraExpire:
                 ResolveAuraExpire(ctx, action.Actor, action.AuraKey, tick);
                 break;
+            case ActionKind.HazardTick:
+                ResolveHazardTick(ctx, action.HazardKey, tick);
+                break;
         }
     }
 
@@ -113,6 +116,10 @@ public static class Simulator
         if (actor.Side == Side.Enemy)
         {
             MaybeTaunt(ctx, tick); // give a tank the chance to seize aggro before the enemy picks a target
+        }
+        else
+        {
+            MoveOutOfHazards(ctx, actor, tick); // a raider uses its action to step out of the fire
         }
 
         Combatant? target = ctx.PickEnemy(actor);
@@ -164,6 +171,7 @@ public static class Simulator
             return;
         }
 
+        MoveOutOfHazards(ctx, actor, tick); // dodge before deciding — a healer stuck in fire relocates first
         RegenResource(actor, tick);
 
         if (tick < actor.GcdReadyAt)
@@ -549,7 +557,129 @@ public static class Simulator
                 }
 
                 break;
+
+            case MechanicArchetype.VoidZone:
+                Combatant? dropOn = PickRandomRaider(ctx);
+                if (dropOn is not null)
+                {
+                    int radius = mechanic.Radius > 0 ? mechanic.Radius : 3000;
+                    int interval = mechanic.TickIntervalTicks > 0 ? mechanic.TickIntervalTicks : 10;
+                    int duration = mechanic.DurationTicks > 0 ? mechanic.DurationTicks : 40;
+                    var hazard = new Hazard(
+                        $"{mechanic.Id}@{tick}", mechanic.Id, dropOn.Pos, radius, mechanic.Amount, interval, tick + duration);
+                    ctx.AddHazard(hazard);
+                    ctx.Emit(new HazardEvent(new Tick(tick), mechanic.Id, hazard.Center, radius, HazardState.Spawn));
+                    ctx.Queue.Schedule(tick + interval, new ScheduledAction(ActionKind.HazardTick, HazardKey: hazard.Key));
+                }
+
+                break;
         }
+    }
+
+    // Damage everyone still standing in the hazard, then reschedule until it expires and clears.
+    private static void ResolveHazardTick(SimContext ctx, string? hazardKey, int tick)
+    {
+        if (hazardKey is null)
+        {
+            return;
+        }
+
+        Hazard? hazard = ctx.GetHazard(hazardKey);
+        if (hazard is null)
+        {
+            return;
+        }
+
+        Combatant source = ctx.Boss ?? ctx.SpawnOrder[0];
+        var castId = new AbilityId(hazard.MechanicId);
+        foreach (Combatant c in ctx.SpawnOrder)
+        {
+            if (c.Side == Side.Raid && c.IsAlive && c.Pos.WithinRadius(hazard.Center, hazard.Radius))
+            {
+                DealDamage(ctx, source, c, Scale(source, hazard.Amount), castId, tick);
+            }
+        }
+
+        int next = tick + hazard.TickInterval;
+        if (next <= hazard.ExpiresAt)
+        {
+            ctx.Queue.Schedule(next, new ScheduledAction(ActionKind.HazardTick, HazardKey: hazardKey));
+        }
+        else
+        {
+            ctx.RemoveHazard(hazard);
+            ctx.Emit(new HazardEvent(new Tick(tick), hazard.MechanicId, hazard.Center, hazard.Radius, HazardState.Expire));
+        }
+    }
+
+    // A raider spends its action to run out of any hazard it's standing in — to the nearest edge, plus a margin.
+    private static void MoveOutOfHazards(SimContext ctx, Combatant actor, int tick)
+    {
+        if (actor.Side != Side.Raid || ctx.Hazards.Count == 0)
+        {
+            return;
+        }
+
+        foreach (Hazard h in ctx.Hazards)
+        {
+            if (actor.Pos.WithinRadius(h.Center, h.Radius))
+            {
+                actor.Pos = StepOutside(actor.Pos, h.Center, h.Radius);
+                ctx.Emit(new MoveEvent(new Tick(tick), actor.Id, actor.Pos));
+                return; // one relocation per action
+            }
+        }
+    }
+
+    // The point just outside the hazard edge, along the ray from its centre through the actor (integer-only).
+    private static Position StepOutside(Position pos, Position center, int radius)
+    {
+        long dx = pos.X - center.X;
+        long dy = pos.Y - center.Y;
+        if (dx == 0 && dy == 0)
+        {
+            dx = 1; // dropped dead-centre: bail out along +X deterministically
+        }
+
+        int dist = Position.IntSqrt((dx * dx) + (dy * dy));
+        if (dist == 0)
+        {
+            dist = 1;
+        }
+
+        int reach = radius + (radius / 10) + 100; // clear the edge with a small margin so rounding can't re-trap us
+        int x = center.X + (int)(dx * reach / dist);
+        int y = center.Y + (int)(dy * reach / dist);
+        return new Position(x, y);
+    }
+
+    // A uniformly-chosen living raider (deterministic via the seeded rng) — where the void zone drops.
+    private static Combatant? PickRandomRaider(SimContext ctx)
+    {
+        int count = 0;
+        foreach (Combatant c in ctx.SpawnOrder)
+        {
+            if (c.Side == Side.Raid && c.IsAlive)
+            {
+                count++;
+            }
+        }
+
+        if (count == 0)
+        {
+            return null;
+        }
+
+        int pick = Roll(ctx, count);
+        foreach (Combatant c in ctx.SpawnOrder)
+        {
+            if (c.Side == Side.Raid && c.IsAlive && pick-- == 0)
+            {
+                return c;
+            }
+        }
+
+        return null;
     }
 
     // The first alive raider with a ready interrupt spends it; used against boss interruptible casts.

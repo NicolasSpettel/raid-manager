@@ -17,6 +17,7 @@ public class GoldenTests
     private const string CasterSeed1Hash = "46075b526d3c8ba4";
     private const string RaidSeed1Hash = "1192a331340eedd2"; // re-blessed: threat-based targeting
     private const string WardenSeed1Hash = "35fe5cade4a7c1fd"; // re-blessed: threat-based targeting
+    private const string SpatialSeed1Hash = "24e25c0de080490f"; // M2 step 2: the first HAZ/MOVE stream
 
     // Joined with an explicit '\n' (never a source multi-line literal) so the expected value can
     // never depend on this file's on-disk line endings.
@@ -85,5 +86,23 @@ public class GoldenTests
         SimResult result = Simulator.SimulateEncounter(Fixtures.Warden(1));
         Assert.Equal(WardenSeed1Hash, result.Hash());
         Assert.Equal(EncounterOutcome.Kill, result.Outcome);
+    }
+
+    [Fact]
+    public void Spatial_Seed1_MatchesBlessedHash()
+    {
+        SimResult result = Simulator.SimulateEncounter(Fixtures.Spatial(1));
+        Assert.Equal(SpatialSeed1Hash, result.Hash());
+        Assert.Equal(EncounterOutcome.Kill, result.Outcome);
+    }
+
+    [Fact]
+    public void Spatial_Seed1_CarriesHazardAndMoveEvents()
+    {
+        // The spatial fixture is the one stream that exercises the new event schema; the others must not.
+        SimResult result = Simulator.SimulateEncounter(Fixtures.Spatial(1));
+
+        Assert.Contains(result.Events, e => e is HazardEvent);
+        Assert.Contains(result.Events, e => e is MoveEvent);
     }
 }

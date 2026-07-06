@@ -25,6 +25,9 @@ public enum MechanicArchetype
 
     /// <summary>The boss casts a dangerous spell; a raider with a ready interrupt stops it, else it lands (<c>Amount</c> raid-wide).</summary>
     InterruptibleCast,
+
+    /// <summary>Drops a ground hazard under a raider: <c>Amount</c> damage per tick to anyone still inside its <c>Radius</c>. Run out.</summary>
+    VoidZone,
 }
 
 /// <summary>When a mechanic fires: once at a tick, or repeating from a start tick.</summary>
@@ -37,16 +40,21 @@ public sealed record MechanicSchedule(int? AtTick = null, int StartTick = 0, int
 }
 
 /// <summary>
-/// One entry on an encounter's timeline: a mechanic archetype, its schedule, and its (single, typed)
-/// parameter. <see cref="Phase"/> gates it to one phase (null = every phase). The richer per-archetype
-/// param bag (engine-spec §8) generalizes this later; M1 needs only one number.
+/// One entry on an encounter's timeline: a mechanic archetype, its schedule, and its parameters.
+/// <see cref="Amount"/> is the one number every archetype uses (damage/percent). The spatial trio
+/// (<see cref="Radius"/>, <see cref="DurationTicks"/>, <see cref="TickIntervalTicks"/>) is read only by
+/// geometry archetypes like <see cref="MechanicArchetype.VoidZone"/> and defaults to 0 for the rest, so
+/// existing rows are unchanged. <see cref="Phase"/> gates it to one phase (null = every phase).
 /// </summary>
 public sealed record MechanicInstance(
     string Id,
     MechanicArchetype Archetype,
     MechanicSchedule Schedule,
     int Amount = 0,
-    int? Phase = null);
+    int? Phase = null,
+    int Radius = 0,
+    int DurationTicks = 0,
+    int TickIntervalTicks = 0);
 
 /// <summary>
 /// An ordered encounter phase. Phase 0 is the opener (no trigger). Later phases advance when their

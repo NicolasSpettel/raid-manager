@@ -8,11 +8,41 @@ namespace Engine;
 /// live in insertion-ordered storage; the id map is for lookup only, never iterated for ordering
 /// (determinism, engine-spec §5). Internal: it never leaves the engine.
 /// </summary>
+/// <summary>A live ground hazard (void zone) — its geometry plus when it damages and when it clears.</summary>
+internal sealed class Hazard
+{
+    public Hazard(string key, string mechanicId, Position center, int radius, int amount, int tickInterval, int expiresAt)
+    {
+        Key = key;
+        MechanicId = mechanicId;
+        Center = center;
+        Radius = radius;
+        Amount = amount;
+        TickInterval = tickInterval;
+        ExpiresAt = expiresAt;
+    }
+
+    public string Key { get; }
+
+    public string MechanicId { get; }
+
+    public Position Center { get; }
+
+    public int Radius { get; }
+
+    public int Amount { get; }
+
+    public int TickInterval { get; }
+
+    public int ExpiresAt { get; }
+}
+
 internal sealed class SimContext
 {
     private readonly List<CombatEvent> _events = new();
     private readonly List<Combatant> _spawnOrder = new();
     private readonly Dictionary<CombatantId, Combatant> _byId = new();
+    private readonly List<Hazard> _hazards = new();
 
     public SimContext(SeededRng rng, SimConfig config)
     {
@@ -46,6 +76,26 @@ internal sealed class SimContext
     public IReadOnlyList<CombatEvent> Events => _events;
 
     public IReadOnlyList<Combatant> SpawnOrder => _spawnOrder;
+
+    /// <summary>Live hazards, in spawn order (deterministic iteration for the "run out" check).</summary>
+    public IReadOnlyList<Hazard> Hazards => _hazards;
+
+    public void AddHazard(Hazard h) => _hazards.Add(h);
+
+    public Hazard? GetHazard(string key)
+    {
+        foreach (Hazard h in _hazards)
+        {
+            if (h.Key == key)
+            {
+                return h;
+            }
+        }
+
+        return null;
+    }
+
+    public void RemoveHazard(Hazard h) => _hazards.Remove(h);
 
     public void Emit(CombatEvent e) => _events.Add(e);
 

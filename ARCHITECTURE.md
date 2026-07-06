@@ -22,11 +22,13 @@ weaker until they recover (so roster depth matters). **M2 step 1 is in:** a 2D *
 live HP, telegraph flashes) sits behind a **Log ↔ Stage toggle** — a second pure consumer of the same
 event stream. Combat now has **threat/tanking** (tanks generate ×4 threat + a reactive **taunt** to claw aggro back)
 and **interruptible casts** too; the theme is **procedurally textured** (stone panels/buttons via
-`StyleBoxTexture`). `dotnet build -warnaserror` + `dotnet test` green (75 tests).
-**Next (post-slice):** the *proactive* **tank-swap AI** (a tank taunts by reading the other tank's debuff
-stacks — the locked taunt-window design), authored texture PNGs + a display font (the last visual polish),
-and **M2 step 2** — engine positions (fixed-point 2D) + move events + telegraph geometry
-(stand-in-fire), then a richer sprite pass. Plans:
+`StyleBoxTexture`). **M2 step 2 (engine) is in:** fixed-point 2D **positions**, a `VoidZone` ground-hazard
+mechanic (integer circle geometry) that raiders **run out of** (`HazardEvent`/`MoveEvent`) — opt-in, so
+the six existing goldens stayed byte-identical and only a new spatial fixture got one.
+`dotnet build -warnaserror` + `dotnet test` green (86 tests).
+**Next (post-slice):** the stage renderer **consuming** HAZ/MOVE (draw the void zone, animate the dodge),
+the *proactive* **tank-swap AI** (a tank taunts by reading the other tank's debuff stacks — the locked
+taunt-window design), and authored texture PNGs + a display font (the last visual polish). Plans:
 **[docs/m1-build-plan.md](docs/m1-build-plan.md)** · **[docs/m2-build-plan.md](docs/m2-build-plan.md)**.
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)

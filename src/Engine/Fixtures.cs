@@ -172,6 +172,53 @@ public static class Fixtures
             new EncounterDef("warden", "The Warden", new[] { boss }, phases, timeline));
     }
 
+    /// <summary>
+    /// A spatial fight (M2 step 2): a 4-raider raid at authored arena positions versus a boss that drops
+    /// void zones under random raiders. Raiders spend an action to run out (MoveEvents); anyone too slow
+    /// eats the ground damage. The first fixture whose stream carries HAZ/MOVE events — it proves
+    /// positions, hazard geometry, and the "run out of fire" movement, and stays a Kill.
+    /// </summary>
+    public static SimInput Spatial(ulong seed)
+    {
+        var mend = new AbilityDef(
+            new AbilityId("heal.mend"), CastTicks: 8, GcdTicks: 7, CooldownTicks: 0, Priority: 50,
+            new DirectHeal(Amount: 120, Variance: 20), ResourceCost: 100);
+
+        var raiders = new List<CombatantSpec>
+        {
+            new(new CombatantId("r:tank"), CombatantKind.Raider, Side.Raid, CombatantRole.Tank, "Tank",
+                new StatBlock(MaxHp: 1000, AttackDamage: 6, AttackVariance: 2, SwingIntervalTicks: 8),
+                SpawnPosition: new Position(0, 2000)),
+            new(new CombatantId("r:healer"), CombatantKind.Raider, Side.Raid, CombatantRole.Healer, "Healer",
+                new StatBlock(MaxHp: 450, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0,
+                    MaxResource: 1400, ResourceRegenPerTick: 5),
+                new[] { mend }, SpawnPosition: new Position(0, 6000)),
+            new(new CombatantId("r:dps1"), CombatantKind.Raider, Side.Raid, CombatantRole.Melee, "Brawler",
+                new StatBlock(MaxHp: 450, AttackDamage: 18, AttackVariance: 6, SwingIntervalTicks: 4),
+                SpawnPosition: new Position(-3000, 4000)),
+            new(new CombatantId("r:dps2"), CombatantKind.Raider, Side.Raid, CombatantRole.Melee, "Rogueish",
+                new StatBlock(MaxHp: 450, AttackDamage: 18, AttackVariance: 6, SwingIntervalTicks: 4),
+                SpawnPosition: new Position(3000, 4000)),
+        };
+
+        var boss = new CombatantSpec(
+            new CombatantId("boss:main"), CombatantKind.Boss, Side.Enemy, CombatantRole.Tank, "The Cindermaw",
+            new StatBlock(MaxHp: 1100, AttackDamage: 22, AttackVariance: 8, SwingIntervalTicks: 8));
+
+        var timeline = new List<MechanicInstance>
+        {
+            new("cinder.voidzone", MechanicArchetype.VoidZone, MechanicSchedule.Repeating(30, 50),
+                Amount: 45, Radius: 2500, DurationTicks: 40, TickIntervalTicks: 10),
+            new("cinder.buster", MechanicArchetype.TankBuster, MechanicSchedule.Repeating(45, 45), Amount: 70),
+        };
+
+        return new SimInput(
+            new SeededRng(seed),
+            SimConfig.Default,
+            new RaidSetup(raiders),
+            new EncounterDef("cindermaw", "The Cindermaw", new[] { boss }, null, timeline));
+    }
+
     /// <summary>Resolve a fixture by name for the Sim CLI. Returns null for an unknown name.</summary>
     public static SimInput? ByName(string name, ulong seed) => name switch
     {
@@ -180,6 +227,7 @@ public static class Fixtures
         "caster" => Caster(seed),
         "raid" => Raid(seed),
         "warden" => Warden(seed),
+        "spatial" => Spatial(seed),
         _ => null,
     };
 

@@ -20,6 +20,9 @@ internal enum ActionKind
 
     /// <summary>An aura's duration elapses and it is removed.</summary>
     AuraExpire,
+
+    /// <summary>A ground hazard ticks: damages anyone still inside, then reschedules or expires.</summary>
+    HazardTick,
 }
 
 /// <summary>
@@ -32,7 +35,8 @@ internal readonly record struct ScheduledAction(
     CombatantId Actor = default,
     AbilityId? Ability = null,
     int MechanicIndex = -1,
-    string? AuraKey = null);
+    string? AuraKey = null,
+    string? HazardKey = null);
 
 /// <summary>
 /// Deterministic schedule of future actions, ordered by (tick, insertion seq). Same-tick actions

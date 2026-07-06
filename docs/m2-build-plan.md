@@ -22,11 +22,16 @@ size — no engine change, no golden churn. Telegraph flash on recent `MechanicE
 (play/pause, 1×/2×/4×, seek) + Back + a **Log ↔ Stage toggle** wired through the coordinator, both views
 loaded with the same `(SimInput, SimResult)`. *(Structural floor; visual polish needs the dev's eyes.)*
 
-### Step 2 — positions in the engine (fixed-point 2D) — later
-Promote layout into the sim: `Position` on combatants, spawn positions, `move` events (running out of
-AoEs), and telegraph **geometry** (circle/cone/ring in integer math) so `spreadDamage` becomes spatial
-(stand in it → hit). This is M1 step 5, deferred until the renderer that consumes it exists — now it does.
-A schema addition (spawn/move events) → deliberate golden re-bless.
+### Step 2 — positions in the engine (fixed-point 2D) — **engine done**
+Positions are in the sim: `Position` (integer fixed-point, 1000 units = 1 yd) on combatants + authored
+spawn positions; a `VoidZone` mechanic drops a circular ground hazard (`HazardEvent`, integer-radius
+geometry) under a random raider; raiders spend an action to **run out** (`MoveEvent`), and anyone too slow
+eats the per-tick ground damage — so reaction speed becomes survival. Integer-only throughout (`IntSqrt`
+via Newton), no float ever touches the sim.
+*Deviation from the original note (for the better):* rather than emit spawn events for everyone and
+re-bless every golden, spatial is **opt-in** — positions live on specs (the renderer already has those),
+and only movement/hazards emit new events. So all six existing goldens stayed **byte-identical**; only a
+new `spatial` fixture (The Cindermaw) got a golden. The renderer consuming HAZ/MOVE is the remaining part.
 
 ### Step 3 — richer stage pass — later
 Sprites/particles/animation on the same renderer interface and the same stream (ADR-0005); the v0 board
