@@ -55,7 +55,7 @@ internal sealed class SimContext
     }
 
     /// <summary>First alive combatant on the opposing side, in spawn order. Threat/tanking arrives later.</summary>
-    public Combatant? PickTarget(Combatant actor)
+    public Combatant? PickEnemy(Combatant actor)
     {
         Side enemySide = actor.Side == Side.Raid ? Side.Enemy : Side.Raid;
         foreach (Combatant c in _spawnOrder)
@@ -67,5 +67,28 @@ internal sealed class SimContext
         }
 
         return null;
+    }
+
+    /// <summary>The most-injured living ally (largest HP deficit), or null if nobody needs healing.</summary>
+    public Combatant? PickInjuredAlly(Combatant actor)
+    {
+        Combatant? best = null;
+        int bestDeficit = 0;
+        foreach (Combatant c in _spawnOrder)
+        {
+            if (c.Side != actor.Side || !c.IsAlive)
+            {
+                continue;
+            }
+
+            int deficit = c.MaxHp - c.Hp;
+            if (deficit > bestDeficit)
+            {
+                bestDeficit = deficit;
+                best = c;
+            }
+        }
+
+        return best;
     }
 }

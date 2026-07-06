@@ -20,5 +20,11 @@ public static class Abilities
             Id: "mage.fireball", Name: "Fireball", ClassId: "mage", SpecId: "fire",
             CastTicks: 25, GcdTicks: 15, CooldownTicks: 0, Amount: 35, Variance: 15, School: DamageSchool.Magic,
             Priority: 50, Tooltip: "Hurls a fireball dealing {amount} {school} damage after a {castSeconds}s cast."),
+
+        new AbilityRow(
+            Id: "priest.mend", Name: "Mend", ClassId: "priest", SpecId: "holy",
+            CastTicks: 10, GcdTicks: 10, CooldownTicks: 0, Amount: 100, Variance: 20, School: DamageSchool.Magic,
+            Priority: 50, Tooltip: "Heals a friendly target for {amount} over a {castSeconds}s cast.",
+            Kind: AbilityKind.Heal, ResourceCost: 120),
     });
 }

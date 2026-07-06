@@ -13,6 +13,9 @@ public static class Simulator
     /// <summary>Bumped when the event schema changes (new or altered event records).</summary>
     public const int EventSchemaVersion = 1;
 
+    // How often an idle actor re-checks whether it can act (e.g. a healer waiting for someone to get hurt).
+    private const int IdlePollTicks = 5;
+
     public static SimResult SimulateEncounter(SimInput input)
     {
         ArgumentNullException.ThrowIfNull(input);
@@ -28,7 +31,7 @@ public static class Simulator
             ScheduleNextSwing(ctx, c, fromTick: 0);
             if (c.Abilities.Count > 0)
             {
-                ctx.Queue.Schedule(0, new ScheduledAction(ActionKind.Decide, c.Id));
+                ScheduleDecide(ctx, c, c.ReactionTicks); // reaction delay applies to the opener too
             }
         }
 
@@ -95,7 +98,7 @@ public static class Simulator
             return; // dead actors don't swing and don't reschedule — they drain out of the queue
         }
 
-        Combatant? target = ctx.PickTarget(actor);
+        Combatant? target = ctx.PickEnemy(actor);
         if (target is null)
         {
             return;
@@ -106,7 +109,7 @@ public static class Simulator
         ScheduleNextSwing(ctx, actor, fromTick: tick);
     }
 
-    // The DPS decision point: if free to act, cast the highest-priority ready ability.
+    // The role decision point: cast the highest-priority ready, affordable ability that has a target.
     private static void ResolveDecide(SimContext ctx, CombatantId actorId, int tick)
     {
         Combatant? actor = ctx.Get(actorId);
@@ -115,36 +118,34 @@ public static class Simulator
             return;
         }
 
+        RegenResource(actor, tick);
+
         if (tick < actor.GcdReadyAt)
         {
             ScheduleDecide(ctx, actor, actor.GcdReadyAt);
             return;
         }
 
-        AbilityDef? ability = PickAbility(actor, tick);
-        if (ability is null)
+        (AbilityDef Ability, Combatant Target)? choice = ChooseAction(ctx, actor, tick);
+        if (choice is not { } action)
         {
-            ScheduleDecide(ctx, actor, SoonestReadyTick(actor, tick)); // everything on cooldown
+            ScheduleDecide(ctx, actor, tick + IdlePollTicks); // nothing to do now; re-check soon
             return;
         }
 
-        Combatant? target = ctx.PickTarget(actor);
-        if (target is null)
-        {
-            return; // no enemy left; the encounter is about to end
-        }
+        SpendResource(ctx, actor, action.Ability, tick);
 
-        if (ability.CastTicks <= 0)
+        if (action.Ability.CastTicks <= 0)
         {
-            ApplyAbility(ctx, actor, target, ability, tick);
-            StartCooldowns(actor, ability, tick);
-            ScheduleDecide(ctx, actor, actor.GcdReadyAt);
+            ApplyAbility(ctx, actor, action.Target, action.Ability, tick);
+            StartCooldowns(actor, action.Ability, tick);
+            ScheduleDecideAfterAction(ctx, actor);
         }
         else
         {
-            ctx.Emit(new CastStart(new Tick(tick), actor.Id, ability.Id, ability.CastTicks, target.Id));
-            actor.CastingUntilTick = tick + ability.CastTicks;
-            ctx.Queue.Schedule(tick + ability.CastTicks, new ScheduledAction(ActionKind.CastComplete, actor.Id, ability.Id));
+            ctx.Emit(new CastStart(new Tick(tick), actor.Id, action.Ability.Id, action.Ability.CastTicks, action.Target.Id));
+            actor.CastingUntilTick = tick + action.Ability.CastTicks;
+            ctx.Queue.Schedule(tick + action.Ability.CastTicks, new ScheduledAction(ActionKind.CastComplete, actor.Id, action.Ability.Id));
         }
     }
 
@@ -168,7 +169,7 @@ public static class Simulator
             return;
         }
 
-        Combatant? target = ctx.PickTarget(actor);
+        Combatant? target = PickTargetFor(ctx, actor, ability.Effect); // re-pick: heal lands on whoever's hurt now
         if (target is not null)
         {
             ApplyAbility(ctx, actor, target, ability, tick);
@@ -176,8 +177,42 @@ public static class Simulator
 
         ctx.Emit(new CastEnd(new Tick(tick), actor.Id, ability.Id, CastResult.Done));
         StartCooldowns(actor, ability, tick);
-        ScheduleDecide(ctx, actor, actor.GcdReadyAt);
+        ScheduleDecideAfterAction(ctx, actor);
     }
+
+    // Highest-priority ability that is off cooldown, affordable, and has a valid target for its effect.
+    private static (AbilityDef Ability, Combatant Target)? ChooseAction(SimContext ctx, Combatant actor, int tick)
+    {
+        AbilityDef? bestAbility = null;
+        Combatant? bestTarget = null;
+        foreach (AbilityDef ability in actor.Abilities)
+        {
+            if (tick < actor.CooldownReadyAt(ability.Id) || actor.Resource < ability.ResourceCost)
+            {
+                continue;
+            }
+
+            Combatant? target = PickTargetFor(ctx, actor, ability.Effect);
+            if (target is null)
+            {
+                continue;
+            }
+
+            if (bestAbility is null || ability.Priority > bestAbility.Priority)
+            {
+                bestAbility = ability;
+                bestTarget = target;
+            }
+        }
+
+        return bestAbility is null ? null : (bestAbility, bestTarget!);
+    }
+
+    private static Combatant? PickTargetFor(SimContext ctx, Combatant actor, AbilityEffect effect) => effect switch
+    {
+        DirectHeal => ctx.PickInjuredAlly(actor),
+        _ => ctx.PickEnemy(actor),
+    };
 
     private static void ApplyAbility(SimContext ctx, Combatant source, Combatant target, AbilityDef ability, int tick)
     {
@@ -185,6 +220,9 @@ public static class Simulator
         {
             case DirectDamage dd:
                 DealDamage(ctx, source, target, dd.Amount + Roll(ctx, dd.Variance), ability.Id, tick);
+                break;
+            case DirectHeal dh:
+                ApplyHeal(ctx, source, target, dh, ability.Id, tick);
                 break;
             default:
                 throw new NotSupportedException($"Unhandled ability effect: {ability.Effect.GetType().Name}");
@@ -201,6 +239,42 @@ public static class Simulator
         }
     }
 
+    private static void ApplyHeal(SimContext ctx, Combatant source, Combatant target, DirectHeal heal, AbilityId ability, int tick)
+    {
+        int raw = heal.Amount + Roll(ctx, heal.Variance);
+        int before = target.Hp;
+        int after = Math.Min(target.MaxHp, before + raw);
+        target.Hp = after;
+        ctx.Emit(new Heal(new Tick(tick), source.Id, target.Id, after - before, ability, raw - (after - before)));
+    }
+
+    private static void SpendResource(SimContext ctx, Combatant actor, AbilityDef ability, int tick)
+    {
+        if (ability.ResourceCost <= 0)
+        {
+            return;
+        }
+
+        actor.Resource -= ability.ResourceCost;
+        ctx.Emit(new ResourceChange(new Tick(tick), actor.Id, -ability.ResourceCost, actor.Resource));
+    }
+
+    private static void RegenResource(Combatant actor, int tick)
+    {
+        int regenPerTick = actor.Spec.Stats.ResourceRegenPerTick;
+        if (regenPerTick <= 0)
+        {
+            return;
+        }
+
+        int elapsed = tick - actor.LastResourceTick;
+        if (elapsed > 0)
+        {
+            actor.Resource = Math.Min(actor.Spec.Stats.MaxResource, actor.Resource + (elapsed * regenPerTick));
+            actor.LastResourceTick = tick;
+        }
+    }
+
     private static void StartCooldowns(Combatant actor, AbilityDef ability, int tick)
     {
         actor.GcdReadyAt = tick + Math.Max(ability.GcdTicks, 1); // GCD ≥ 1 guarantees forward progress
@@ -208,35 +282,6 @@ public static class Simulator
         {
             actor.SetCooldownReadyAt(ability.Id, tick + ability.CooldownTicks);
         }
-    }
-
-    private static AbilityDef? PickAbility(Combatant actor, int tick)
-    {
-        AbilityDef? best = null;
-        foreach (AbilityDef ability in actor.Abilities)
-        {
-            if (tick >= actor.CooldownReadyAt(ability.Id) && (best is null || ability.Priority > best.Priority))
-            {
-                best = ability;
-            }
-        }
-
-        return best;
-    }
-
-    private static int SoonestReadyTick(Combatant actor, int tick)
-    {
-        int soonest = int.MaxValue;
-        foreach (AbilityDef ability in actor.Abilities)
-        {
-            int readyAt = actor.CooldownReadyAt(ability.Id);
-            if (readyAt > tick && readyAt < soonest)
-            {
-                soonest = readyAt;
-            }
-        }
-
-        return soonest == int.MaxValue ? tick + 1 : soonest;
     }
 
     private static AbilityDef? FindAbility(Combatant actor, AbilityId id)
@@ -253,6 +298,9 @@ public static class Simulator
     }
 
     private static int Roll(SimContext ctx, int variance) => variance > 0 ? ctx.Rng.NextInt(variance) : 0;
+
+    private static void ScheduleDecideAfterAction(SimContext ctx, Combatant actor) =>
+        ScheduleDecide(ctx, actor, actor.GcdReadyAt + actor.ReactionTicks);
 
     private static void ScheduleDecide(SimContext ctx, Combatant actor, int atTick) =>
         ctx.Queue.Schedule(atTick, new ScheduledAction(ActionKind.Decide, actor.Id));

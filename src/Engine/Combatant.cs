@@ -28,10 +28,23 @@ public enum CombatantRole
 }
 
 /// <summary>
-/// Immutable input stats (gear/traits already folded by the game layer). Deliberately tiny — just
-/// what auto-attacks need; it grows as resources and mitigation land.
+/// Immutable input stats (gear/traits already folded by the game layer). Grows per M1 step; resources
+/// are 0 for combatants that don't spend (most melee/tanks in M1).
 /// </summary>
-public sealed record StatBlock(int MaxHp, int AttackDamage, int AttackVariance, int SwingIntervalTicks);
+public sealed record StatBlock(
+    int MaxHp,
+    int AttackDamage,
+    int AttackVariance,
+    int SwingIntervalTicks,
+    int MaxResource = 0,
+    int ResourceRegenPerTick = 0);
+
+/// <summary>
+/// How well a raider executes — the link where management (attributes/traits/morale) becomes combat
+/// outcome (engine-spec §9). v0 is a fixed reaction delay; the game layer will derive it from
+/// attributes later. A crisp raider (0) acts on the GCD; a sloppy one loses uptime every action.
+/// </summary>
+public sealed record ExecutionProfile(int ReactionTicks);
 
 /// <summary>
 /// The immutable definition of one combatant, as authored/generated outside the engine. The engine
@@ -45,7 +58,8 @@ public sealed record CombatantSpec(
     CombatantRole Role,
     string Name,
     StatBlock Stats,
-    IReadOnlyList<AbilityDef>? Abilities = null);
+    IReadOnlyList<AbilityDef>? Abilities = null,
+    ExecutionProfile? Execution = null);
 
 /// <summary>Mutable per-encounter runtime state for one combatant. Engine-internal.</summary>
 internal sealed class Combatant
@@ -56,6 +70,7 @@ internal sealed class Combatant
     {
         Spec = spec;
         Hp = spec.Stats.MaxHp;
+        Resource = spec.Stats.MaxResource;
     }
 
     public CombatantSpec Spec { get; }
@@ -66,11 +81,21 @@ internal sealed class Combatant
 
     public int Hp { get; set; }
 
+    public int MaxHp => Spec.Stats.MaxHp;
+
     public bool IsAlive => Hp > 0;
+
+    /// <summary>Current spendable resource (mana). Regenerated lazily at decision points.</summary>
+    public int Resource { get; set; }
+
+    /// <summary>Tick at which resource was last regenerated (lazy regen bookkeeping).</summary>
+    public int LastResourceTick { get; set; }
+
+    public int ReactionTicks => Spec.Execution?.ReactionTicks ?? 0;
 
     public IReadOnlyList<AbilityDef> Abilities => Spec.Abilities ?? System.Array.Empty<AbilityDef>();
 
-    /// <summary>Tick at which the global cooldown frees up (the next Decide may act at or after this).</summary>
+    /// <summary>Tick at which the global cooldown frees up (the next decision may act at or after this).</summary>
     public int GcdReadyAt { get; set; }
 
     /// <summary>Set while a cast-time ability is in flight; null otherwise.</summary>

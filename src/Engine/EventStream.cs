@@ -47,6 +47,8 @@ public static class EventStream
         CastStart c => $"CAST  t={c.Tick} src={c.Source} ability={c.Ability} dur={Int(c.DurationTicks)} dst={c.Target}",
         CastEnd c => $"CEND  t={c.Tick} src={c.Source} ability={c.Ability} result={c.Result}",
         Damage d => FormatDamage(d),
+        Heal h => $"HEAL  t={h.Tick} src={h.Source} dst={h.Target} ability={h.Ability} amount={Int(h.Amount)} overheal={Int(h.Overheal)}",
+        ResourceChange r => $"RSRC  t={r.Tick} who={r.Who} delta={Int(r.Delta)} now={Int(r.Now)}",
         Death d => $"DEATH t={d.Tick} victim={d.Victim}",
         EncounterEnd x => $"END   t={x.Tick} outcome={x.Outcome}",
         _ => throw new NotSupportedException($"Unknown event type: {e.GetType().Name}"),

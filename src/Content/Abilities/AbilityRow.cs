@@ -4,6 +4,13 @@ using Engine;
 
 namespace Content;
 
+/// <summary>Which effect archetype a row authors.</summary>
+public enum AbilityKind
+{
+    Damage,
+    Heal,
+}
+
 /// <summary>
 /// An authored ability template — one row = one fact. It owns the numbers, the effect archetype, the
 /// AI priority, and a tooltip template that interpolates its OWN fields, so the tooltip and the engine
@@ -22,7 +29,9 @@ public sealed record AbilityRow(
     int Variance,
     DamageSchool School,
     int Priority,
-    string Tooltip)
+    string Tooltip,
+    AbilityKind Kind = AbilityKind.Damage,
+    int ResourceCost = 0)
 {
     /// <summary>The factory: a fully-valid engine ability from this row.</summary>
     public AbilityDef ToDef() => new(
@@ -31,7 +40,8 @@ public sealed record AbilityRow(
         GcdTicks,
         CooldownTicks,
         Priority,
-        new DirectDamage(Amount, Variance, School));
+        Kind == AbilityKind.Heal ? new DirectHeal(Amount, Variance) : new DirectDamage(Amount, Variance, School),
+        ResourceCost);
 
     /// <summary>The fields a tooltip may reference — the single source of truth is this row's own data.</summary>
     public IReadOnlyDictionary<string, string> TooltipFields() => new Dictionary<string, string>(StringComparer.Ordinal)

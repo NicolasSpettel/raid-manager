@@ -79,12 +79,56 @@ public static class Fixtures
             new EncounterDef("caster-dummy", "Caster Dummy", new[] { dummy }));
     }
 
+    /// <summary>
+    /// A small raid — tank + (optional) healer + melee DPS — versus a boss. The boss targets the first
+    /// alive raider (spawn order), so the tank naturally holds it; the healer keeps the tank up off a
+    /// mana pool. With the healer the raid wins; without, the tank dies first (a Wipe) — the whole point
+    /// of step 3: management (fielding a healer) changes the outcome.
+    /// </summary>
+    public static SimInput Raid(ulong seed, bool withHealer = true)
+    {
+        var raiders = new List<CombatantSpec>
+        {
+            // Tank first → the boss tanks on it (spawn-order threat until real threat lands).
+            new(new CombatantId("r:tank"), CombatantKind.Raider, Side.Raid, CombatantRole.Tank, "Tank",
+                new StatBlock(MaxHp: 800, AttackDamage: 4, AttackVariance: 2, SwingIntervalTicks: 8)),
+        };
+
+        if (withHealer)
+        {
+            var mend = new AbilityDef(
+                new AbilityId("heal.mend"), CastTicks: 10, GcdTicks: 10, CooldownTicks: 0, Priority: 50,
+                new DirectHeal(Amount: 100, Variance: 20), ResourceCost: 120);
+
+            raiders.Add(new CombatantSpec(
+                new CombatantId("r:healer"), CombatantKind.Raider, Side.Raid, CombatantRole.Healer, "Healer",
+                new StatBlock(MaxHp: 400, AttackDamage: 0, AttackVariance: 0, SwingIntervalTicks: 0,
+                    MaxResource: 1000, ResourceRegenPerTick: 3),
+                new[] { mend }));
+        }
+
+        raiders.Add(new CombatantSpec(
+            new CombatantId("r:dps"), CombatantKind.Raider, Side.Raid, CombatantRole.Melee, "DPS",
+            new StatBlock(MaxHp: 400, AttackDamage: 15, AttackVariance: 5, SwingIntervalTicks: 4)));
+
+        var boss = new CombatantSpec(
+            new CombatantId("boss:main"), CombatantKind.Boss, Side.Enemy, CombatantRole.Tank, "The Warden",
+            new StatBlock(MaxHp: 1200, AttackDamage: 40, AttackVariance: 10, SwingIntervalTicks: 8));
+
+        return new SimInput(
+            new SeededRng(seed),
+            SimConfig.Default,
+            new RaidSetup(raiders),
+            new EncounterDef("warden-raid", "The Warden", new[] { boss }));
+    }
+
     /// <summary>Resolve a fixture by name for the Sim CLI. Returns null for an unknown name.</summary>
     public static SimInput? ByName(string name, ulong seed) => name switch
     {
         "dummy" => Dummy(seed),
         "trio" => Trio(seed),
         "caster" => Caster(seed),
+        "raid" => Raid(seed),
         _ => null,
     };
 

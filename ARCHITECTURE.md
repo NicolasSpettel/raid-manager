@@ -7,13 +7,14 @@
 
 ## Project status
 
-**Phase: M1 IN PROGRESS — the vertical slice (step 2 of 10 done).** M0 foundation is complete and
-tagged `v0.0-m0`. The engine now runs the **N-combatant model** (two sides, scheduled `ActionQueue`,
-swing timers, `Kill`/`Wipe`/`Timeout`) **and a data-driven cast system** (cast time / GCD / cooldown /
-AI-priority selection), fed by authored **`Content` ability rows** with drift-tested generated
-tooltips. `dotnet build -warnaserror` + `dotnet test` green (23 tests); the Godot `App` still replays
-the Sim's **byte-identical** stream (`hash=ac330b5fa219abde`). Plan:
-**[docs/m1-build-plan.md](docs/m1-build-plan.md)** — next is step 3 (roles, healing & resources).
+**Phase: M1 IN PROGRESS — the vertical slice (step 3 of 10 done).** M0 foundation is complete and
+tagged `v0.0-m0`. The engine runs the **N-combatant model**, a **data-driven cast system** (cast time /
+GCD / cooldown / AI-priority), and now **roles, healing & resources**: role-aware targeting (heals seek
+the most-injured ally), a mana clock, and a first **execution model** (reaction delay) where a sloppy
+raider verifiably underperforms and fielding a healer flips Wipe→Kill. `dotnet build -warnaserror` +
+`dotnet test` green (29 tests); the Godot `App` still replays the Sim's **byte-identical** stream
+(`hash=ac330b5fa219abde`). Plan: **[docs/m1-build-plan.md](docs/m1-build-plan.md)** — next is step 4
+(encounter model + mechanic archetypes).
 
 **If you are a coding session, read in this order:** this file → [docs/m1-build-plan.md](docs/m1-build-plan.md)
 → [docs/BLUEPRINT.md](docs/BLUEPRINT.md) §4 (repo) & §10 (conventions) → [docs/engine-spec.md](docs/engine-spec.md)
@@ -116,8 +117,8 @@ M0 foundation built and green. Each module gets one line: what it owns, what it 
 
 | Module | Owns (M0 state) | Must not know about |
 |---|---|---|
-| `src/Engine` | Deterministic sim core: `SeededRng` (PCG-XSH-RR), `Tick`/`TimeModel`, the combatant model (`CombatantSpec`/`Combatant`/`StatBlock`, sides/kinds/roles), scheduled `ActionQueue`, abilities & casts (`AbilityDef`/`AbilityEffect` + GCD/cooldown/priority runtime), `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` (dummy, trio, caster) | Content · Game · App · Godot — references nothing in the solution |
-| `src/Content` | Ability registry: authored `AbilityRow`s (numbers + effect archetype + aiPriority + tooltip template) projected to engine `AbilityDef` via a factory; generated tooltips (`Tooltips`) | Game · App · Godot |
+| `src/Engine` | Deterministic sim core: `SeededRng` (PCG-XSH-RR), `Tick`/`TimeModel`, combatant model (`CombatantSpec`/`Combatant`/`StatBlock`, sides/kinds/roles), scheduled `ActionQueue`, abilities & casts (`AbilityDef`/`AbilityEffect` = `DirectDamage`/`DirectHeal` + GCD/cooldown/priority/resource runtime), role-aware targeting, `ExecutionProfile` (reaction delay), `CombatEvent` union, `EventStream` (serialize + FNV-1a hash), `SimulateEncounter`, `Fixtures` (dummy, trio, caster, raid) | Content · Game · App · Godot — references nothing in the solution |
+| `src/Content` | Ability registry: authored `AbilityRow`s (damage/heal kind, numbers + effect + aiPriority + cost + tooltip template) projected to engine `AbilityDef` via a factory; generated tooltips (`Tooltips`) | Game · App · Godot |
 | `src/Game` | Guild/roster/economy/saves/day-loop (namespace anchor only in M0) | App · Godot |
 | `src/Sim` | Headless CLI `run dummy --seed N` → the real Engine; future golden/probe/campaign home | App · Godot |
 | `src/App` | Godot 4.7 C# shell: `Main` scene runs the same Engine, shows log+hash. **The only Godot-referencing project.** | — |

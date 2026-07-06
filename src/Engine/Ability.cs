@@ -15,17 +15,21 @@ public enum DamageSchool
 /// </summary>
 public abstract record AbilityEffect;
 
-/// <summary>Deal <c>Amount + [0, Variance)</c> damage of <paramref name="School"/> to the target.</summary>
+/// <summary>Deal <c>Amount + [0, Variance)</c> damage of <paramref name="School"/> to an enemy.</summary>
 public sealed record DirectDamage(int Amount, int Variance, DamageSchool School) : AbilityEffect;
+
+/// <summary>Restore <c>Amount + [0, Variance)</c> health to the most-injured ally.</summary>
+public sealed record DirectHeal(int Amount, int Variance) : AbilityEffect;
 
 /// <summary>
 /// The mechanical definition of an ability, as the engine executes it. Content authors richer rows
-/// (name, tooltip, cost) and projects them to this via a factory — the engine stays Content-agnostic.
+/// (name, tooltip) and projects them to this via a factory — the engine stays Content-agnostic.
 /// </summary>
 public sealed record AbilityDef(
     AbilityId Id,
     int CastTicks,      // 0 = instant
     int GcdTicks,       // global cooldown started on use (must be ≥ 1)
     int CooldownTicks,  // 0 = no cooldown
-    int Priority,       // higher = preferred by the DPS role policy
-    AbilityEffect Effect);
+    int Priority,       // higher = preferred by the role policy
+    AbilityEffect Effect,
+    int ResourceCost = 0);

@@ -45,6 +45,16 @@ public sealed record CastEnd(Tick Tick, CombatantId Source, AbilityId Ability, C
 public sealed record Damage(Tick Tick, CombatantId Source, CombatantId Target, int Amount, AbilityId? Ability = null)
     : CombatEvent(Tick);
 
+/// <summary>
+/// <paramref name="Source"/> healed <paramref name="Target"/> for <paramref name="Amount"/> effective
+/// health (<paramref name="Overheal"/> was wasted above the target's max).
+/// </summary>
+public sealed record Heal(Tick Tick, CombatantId Source, CombatantId Target, int Amount, AbilityId Ability, int Overheal)
+    : CombatEvent(Tick);
+
+/// <summary><paramref name="Who"/>'s resource changed by <paramref name="Delta"/> (now at <paramref name="Now"/>).</summary>
+public sealed record ResourceChange(Tick Tick, CombatantId Who, int Delta, int Now) : CombatEvent(Tick);
+
 /// <summary><paramref name="Victim"/> died.</summary>
 public sealed record Death(Tick Tick, CombatantId Victim) : CombatEvent(Tick);
 
