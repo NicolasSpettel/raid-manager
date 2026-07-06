@@ -77,12 +77,13 @@ internal static class SimCli
         while (!calendar.SeasonOver)
         {
             WeekOutcome week = WeekRunner.RunWeek(guild, ladder, calendar.CurrentWeek, raidDays, Lockout.Empty, difficulty, seed);
-            guild = week.Guild;
+            guild = ConditionModel.AfterWeek(week.Guild, raidDays); // raiding drains freshness; rest recovers it (§8)
             bestBoss = Math.Max(bestBoss, week.Report.FurthestBossIndex);
 
             int downed = week.Report.Nights.Count(n => n.Outcome == "Kill");
             string frontier = week.Report.FurthestBossIndex >= 0 ? ladder[week.Report.FurthestBossIndex].Name : "—";
-            Console.WriteLine($"  week {calendar.CurrentWeek,2}: {downed} kills, furthest {frontier}, gold {guild.Economy.Gold}");
+            int avgFreshness = (int)guild.Roster.Average(r => (r.Condition ?? ConditionModel.Fresh).Freshness);
+            Console.WriteLine($"  week {calendar.CurrentWeek,2}: {downed} kills, furthest {frontier}, gold {guild.Economy.Gold}, freshness {avgFreshness}");
             calendar = calendar.Advance();
         }
 

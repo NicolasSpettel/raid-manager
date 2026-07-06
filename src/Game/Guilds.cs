@@ -34,7 +34,8 @@ public static class Guilds
             string name = NamePool[rng.NextInt(NamePool.Length)];
             string id = "r:" + (i + 1).ToString("D4", CultureInfo.InvariantCulture);
             AttributeVector attributes = WorldGen.RollStarterAttributes(attrRng, PrestigeTier.National);
-            roster.Add(new RaiderRecord(id, name, cls.Id, Equipped: new List<string>(), Attributes: attributes));
+            roster.Add(new RaiderRecord(
+                id, name, cls.Id, Equipped: new List<string>(), Attributes: attributes, Condition: ConditionModel.Fresh));
         }
 
         return new GuildSave(

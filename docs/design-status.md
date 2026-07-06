@@ -31,7 +31,7 @@ plugs into the sim/economy). Rough priority order for when we build:
 1. **Economy & finances** — **FIRST PASS DONE** → [economy-model.md](economy-model.md): FM
    research + a concrete priced gold model (wages, transfer fees, guild balances, revenue,
    costs, valuation formula). Awaiting dev reaction on the scale, then it's SOLID.
-   *(Condition/injury system also fleshed FM-modeled — GDD §8, now near-SOLID.)*
+   *(Condition system — **first slice BUILT** (`ConditionModel`): FM two-axis Freshness/Sharpness, drain-on-raid / recover-on-rest ∝ Endurance, folded into combat as a performance multiplier; the grind↔rest tradeoff emerges. Still to do: rebalance so grind isn't strictly dominated, Morale as its own axis, condition-driven injury rolls.)*
    *(Difficulty/raid-units, boss-learning thresholds, 1-button automation, staff tasks, youth,
    awards/PR/holidays, self-contract, social graph — all got locked design direction this pass;
    promoted from bare-paragraph to "direction set, ready for their build-time spec.")*

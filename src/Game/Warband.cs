@@ -40,7 +40,19 @@ public static class Warband
         }
 
         IReadOnlyList<AbilityDef> kit = cls.Kit.Select(Abilities.Registry.Def).ToList();
-        CombatAttributes combatAttributes = CombatResolution.Resolve(raider.Attributes); // §8a′: attributes → combat
+
+        // §8a′ attributes → combat, then fold in condition: a fatigued/rusty raider performs worse (GDD §8).
+        CombatAttributes combatAttributes = CombatResolution.Resolve(raider.Attributes);
+        int conditionPct = ConditionModel.PerformancePct(raider.Condition);
+        if (conditionPct != 100)
+        {
+            combatAttributes = combatAttributes with
+            {
+                DamageMultPct = combatAttributes.DamageMultPct * conditionPct / 100,
+                MovementSkill = combatAttributes.MovementSkill * conditionPct / 100,
+            };
+        }
+
         return new CombatantSpec(
             new CombatantId(raider.Id), CombatantKind.Raider, Side.Raid, cls.Role, raider.Name, stats, kit,
             Attributes: combatAttributes);
