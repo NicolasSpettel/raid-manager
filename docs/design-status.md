@@ -45,11 +45,12 @@ plugs into the sim/economy). Rough priority order for when we build:
    + a starter set.
 5. **Staff / co-manager & automation** — delegation is a pillar (§6b) but the staff quality model,
    what each role automates, and the "decide for me at ~90%" logic per system are undefined.
-6. **Weekly activity mechanics** — BUILT (`src/Game/Season`): `SeasonCalendar`, weekly `Lockout`, "plan my
-   week" stances → an `ActivityPlan` (raid/dungeon/train/rest days), `WeekRunner` raiding the ladder,
-   `WeeklyActivities` (dungeons→gear catch-up, training→targeted attribute growth), `ConditionModel`
-   (freshness/sharpness cost), `Injuries` (fatigue-driven). Still THIN: the 4-slot intra-day granularity,
-   professions/questing/drills/social activities, and morale effects. First-pass rates need balancing.
+6. **Weekly activity mechanics** — BUILT (`src/Game/Season`): a real **calendar** (`SeasonSchedule`: raid
+   opens, weekly resets, holidays), a **granular week planner** (`WeekSchedule`/`WeekPlanner`: assign raid
+   nights, 5-man dungeon groups → gear, training → attributes — per raider/group), `WeekExecutor` running it
+   with **per-raider** condition/injury/morale from each raider's booked load, `MoraleModel` (kills/wipes/
+   benching/holidays). Still THIN: the 4-slot intra-day granularity, professions/questing/drills/social
+   activities, and the inbox. First-pass rates need balancing.
 7. **Boss learning UX** — the knowledge-bar + fuzzy-feedback loop is locked in principle; needs
    the concrete model (how pulls/analysis fill knowledge, how it converts to combat effect, how
    the "ask a raider" conversation reads).

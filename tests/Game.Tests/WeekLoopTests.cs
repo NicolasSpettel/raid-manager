@@ -40,10 +40,10 @@ public class WeekLoopTests
     public void MoreRaidDays_ReachAtLeastAsFar()
     {
         GuildSave guild = StarterGuild();
-        int relax = WeekRunner.RunWeek(guild, Encounters.All, 1, WeekPlan.RaidDays(WeekStance.Relax), Lockout.Empty, Difficulty.Normal, 1).Report.FurthestBossIndex;
-        int grind = WeekRunner.RunWeek(guild, Encounters.All, 1, WeekPlan.RaidDays(WeekStance.GrindHard), Lockout.Empty, Difficulty.Normal, 1).Report.FurthestBossIndex;
+        int few = WeekRunner.RunWeek(guild, Encounters.All, 1, 1, Lockout.Empty, Difficulty.Normal, 1).Report.FurthestBossIndex;
+        int many = WeekRunner.RunWeek(guild, Encounters.All, 1, 4, Lockout.Empty, Difficulty.Normal, 1).Report.FurthestBossIndex;
 
-        Assert.True(grind >= relax, $"more raid days should not reduce progress: grind={grind} relax={relax}");
+        Assert.True(many >= few, $"more raid nights should not reduce progress: many={many} few={few}");
     }
 
     [Fact]

@@ -51,6 +51,20 @@ public static class ConditionModel
         return condition with { Freshness = freshness, Sharpness = sharpness };
     }
 
+    /// <summary>
+    /// Advance one raider's condition from their actual weekly load: <paramref name="slots"/> booked day-slots
+    /// drain freshness (recovered by a base + Endurance), and raiding keeps sharpness up while sitting out
+    /// (<paramref name="raided"/> = false) lets it rust. The per-raider version the schedule executor uses.
+    /// </summary>
+    public static Condition AfterLoad(Condition condition, int slots, bool raided, int endurance)
+    {
+        int freshness = Math.Clamp(condition.Freshness - (slots * 3) + (15 + endurance), 0, 100);
+        int sharpness = raided
+            ? Math.Clamp(condition.Sharpness + 12, 0, 100)
+            : Math.Clamp(condition.Sharpness - 15, 0, 100);
+        return condition with { Freshness = freshness, Sharpness = sharpness };
+    }
+
     /// <summary>Advance every raider's condition after a week of <paramref name="raidDays"/> raid days (Endurance drives recovery).</summary>
     public static GuildSave AfterWeek(GuildSave guild, int raidDays)
     {

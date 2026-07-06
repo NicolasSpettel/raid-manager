@@ -44,7 +44,7 @@ internal static class SimCli
 
         if (args is ["play", ..])
         {
-            return RunPlay(ParseSeed(args), ParseString(args, "--stance", "balanced"), ParseString(args, "--difficulty", "normal"));
+            return RunPlay(ParseSeed(args), ParseInt(args, "--raids", 3), ParseString(args, "--difficulty", "normal"));
         }
 
         Console.Error.WriteLine("usage: sim run <dummy|trio|caster|raid|warden|spatial|classraid> --seed <N>");
@@ -52,56 +52,50 @@ internal static class SimCli
         Console.Error.WriteLine("       sim balance --raids <N> --seed <N>   (win-rate matrix over every boss x difficulty)");
         Console.Error.WriteLine("       sim world --seed <N> --guilds <N>    (generate the living world, print distributions + hash)");
         Console.Error.WriteLine("       sim season --seed <N> --weeks <N>    (race the world through the season raid, print the leaderboard)");
-        Console.Error.WriteLine("       sim play --seed <N> --stance <relax|balanced|grind> --difficulty <normal|heroic|mythic>  (the player's weekly raid loop under lockout)");
+        Console.Error.WriteLine("       sim play --seed <N> --raids <N> --difficulty <normal|heroic|mythic>  (a season on the calendar: plan each week, execute it)");
         return 1;
     }
 
-    // The player's season: advance the calendar week by week, raiding the ladder under a weekly lockout.
-    private static int RunPlay(ulong seed, string stanceName, string difficultyName)
+    // A season on the calendar: progress week by week, plan each week (raids + 5-man dungeons + training), execute it.
+    private static int RunPlay(ulong seed, int raidNights, string difficultyName)
     {
-        WeekStance stance = stanceName.ToLowerInvariant() switch
-        {
-            "relax" => WeekStance.Relax,
-            "grind" or "grindhard" or "grind_hard" => WeekStance.GrindHard,
-            _ => WeekStance.Balanced,
-        };
         Difficulty difficulty = Enum.TryParse(difficultyName, ignoreCase: true, out Difficulty d) ? d : Difficulty.Normal;
 
+        const int seasonWeeks = 8;
         GuildSave guild = Guilds.CreateStarter("Your Guild", seed, "2026-01-01T00:00:00Z");
-        SeasonCalendar calendar = SeasonCalendar.Start(8);
+        SeasonSchedule calendar = SeasonSchedule.Build(seasonWeeks, "The Sundering");
         var ladder = Encounters.All;
-        ActivityPlan plan = WeekPlan.Plan(stance);
         int bestBoss = -1;
 
-        Console.WriteLine(
-            $"== Season: {stance} (raid {plan.RaidDays} / dungeon {plan.DungeonDays} / train {plan.TrainDays} / rest {plan.RestDays}), {difficulty} ==");
-        while (!calendar.SeasonOver)
+        Console.WriteLine($"== Season on the calendar: {seasonWeeks} weeks, {difficulty}, {raidNights} raid nights/week ==");
+        Console.WriteLine("upcoming: " + string.Join(" | ", calendar.Upcoming(1, 4).Select(e => $"wk{e.Week} {e.Name}")));
+
+        for (int week = 1; week <= seasonWeeks; week++)
         {
-            int week = calendar.CurrentWeek;
+            // Plan the week: raid nights, then fill the off-days with 5-man dungeons + a training session.
+            int offDays = Math.Max(0, 7 - raidNights);
+            int dungeonDays = Math.Max(0, offDays - 1);
+            int trainDays = offDays > 0 ? 1 : 0;
+            WeekSchedule schedule = WeekPlanner.Auto(guild, raidNights, dungeonDays, trainDays);
 
-            WeekOutcome raids = WeekRunner.RunWeek(guild, ladder, week, plan.RaidDays, Lockout.Empty, difficulty, seed);
-            guild = raids.Guild;
-            bestBoss = Math.Max(bestBoss, raids.Report.FurthestBossIndex);
+            CalendarEvent? holiday = calendar.HolidayIn(week);
+            WeekResult result = WeekExecutor.Run(
+                guild, schedule, ladder, week, Lockout.Empty, difficulty, seed, calendar, holidayGranted: holiday is not null);
+            guild = result.Guild;
+            bestBoss = Math.Max(bestBoss, result.FurthestBossIndex);
 
-            ActivityOutcome activities = WeeklyActivities.Run(guild, plan, seed + (ulong)(week * 31)); // dungeons + training
-            guild = activities.Guild;
-            guild = ConditionModel.AfterWeek(guild, plan.RaidDays);                                    // freshness/sharpness
-            (guild, var injuries) = Injuries.RollWeek(guild, plan.RaidDays, seed + (ulong)(week * 7));  // fatigue → injuries
-
-            int downed = raids.Report.Nights.Count(n => n.Outcome == "Kill");
-            string frontier = raids.Report.FurthestBossIndex >= 0 ? ladder[raids.Report.FurthestBossIndex].Name : "—";
-            int avgFreshness = (int)guild.Roster.Average(r => (r.Condition ?? ConditionModel.Fresh).Freshness);
-            int avgGear = (int)guild.Roster.Average(Warband.GearPower);
-            int hurt = guild.Roster.Count(r => r.InjuryRaidsLeft > 0);
+            string frontier = result.FurthestBossIndex >= 0 ? ladder[result.FurthestBossIndex].Name : "none";
+            int fresh = (int)guild.Roster.Average(r => (r.Condition ?? ConditionModel.Fresh).Freshness);
+            int morale = (int)guild.Roster.Average(r => (r.Condition ?? ConditionModel.Fresh).Morale);
+            int gear = (int)guild.Roster.Average(Warband.GearPower);
+            string note = holiday is not null ? $"  [{holiday.Name}: day off granted]" : string.Empty;
             Console.WriteLine(
-                $"  week {week,2}: {downed} kills, furthest {frontier}, gold {guild.Economy.Gold}, " +
-                $"fresh {avgFreshness}, gear {avgGear}, +{activities.Report.GearDrops} loot/+{activities.Report.TrainingSessions} train, {hurt} hurt");
-            calendar = calendar.Advance();
+                $"  wk {week,2}: {result.Kills} kills, furthest {frontier}, gold {guild.Economy.Gold}, " +
+                $"fresh {fresh}, morale {morale}, gear {gear}, {result.Injured} hurt{note}");
         }
 
         string reached = bestBoss >= 0 ? ladder[bestBoss].Name : "nothing";
-        int finalGear = (int)guild.Roster.Average(Warband.GearPower);
-        Console.WriteLine($"\nseason over — progression: {bestBoss + 1}/{ladder.Count} bosses (reached {reached}); gold {guild.Economy.Gold}, avg gear {finalGear}");
+        Console.WriteLine($"\nseason over: reached {reached} ({bestBoss + 1}/{ladder.Count}); gold {guild.Economy.Gold}");
         return 0;
     }
 
