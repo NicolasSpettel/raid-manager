@@ -47,6 +47,24 @@ public class CalendarTests
     private static readonly string[] OneRaider = { "r:1" };
 
     [Fact]
+    public void FromDays_BuildsScheduleFromPerDayChoices()
+    {
+        GuildSave guild = Guilds.CreateStarter("Test", 1, "2026-01-01T00:00:00Z"); // 8 raiders
+        var perDay = new[]
+        {
+            ActivityType.Raid, ActivityType.Dungeon, ActivityType.Training,
+            ActivityType.Rest, ActivityType.Raid, ActivityType.Rest, ActivityType.Rest,
+        };
+
+        WeekSchedule schedule = WeekPlanner.FromDays(guild, perDay);
+
+        Assert.Equal(2, schedule.RaidDays.Count);
+        Assert.Contains(schedule.Assignments, a => a.Type == ActivityType.Dungeon && a.RaiderIds.Count == 5);
+        Assert.Contains(schedule.Assignments, a => a.Type == ActivityType.Training);
+        Assert.Equal(4, schedule.Assignments.Count); // rest days add nothing
+    }
+
+    [Fact]
     public void Schedule_TracksSlotsAndBench()
     {
         var schedule = new WeekSchedule(new[] { new Assignment(Weekday.Monday, ActivityType.Raid, OneRaider) });

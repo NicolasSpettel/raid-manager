@@ -107,6 +107,37 @@ public static class WeekPlanner
         return new WeekSchedule(assignments); // remaining days rest (no assignment)
     }
 
+    /// <summary>Build a schedule from an explicit per-day activity choice (the interactive planner). Rest = no assignment.</summary>
+    public static WeekSchedule FromDays(GuildSave guild, IReadOnlyList<ActivityType> perDay)
+    {
+        ArgumentNullException.ThrowIfNull(guild);
+        ArgumentNullException.ThrowIfNull(perDay);
+        Weekday[] days = Enum.GetValues<Weekday>();
+        List<string> roster = guild.Roster.Select(r => r.Id).ToList();
+
+        var assignments = new List<Assignment>();
+        int dungeonRotation = 0;
+        for (int d = 0; d < perDay.Count && d < days.Length; d++)
+        {
+            switch (perDay[d])
+            {
+                case ActivityType.Raid:
+                    assignments.Add(new Assignment(days[d], ActivityType.Raid, roster));
+                    break;
+                case ActivityType.Dungeon:
+                    assignments.Add(new Assignment(days[d], ActivityType.Dungeon, FiveManGroup(roster, dungeonRotation++), "dungeon"));
+                    break;
+                case ActivityType.Training:
+                    assignments.Add(new Assignment(days[d], ActivityType.Training, roster.Take(3).ToList()));
+                    break;
+                default:
+                    break; // Rest — the day is left empty
+            }
+        }
+
+        return new WeekSchedule(assignments);
+    }
+
     private static List<string> FiveManGroup(List<string> roster, int rotation)
     {
         if (roster.Count <= 5)

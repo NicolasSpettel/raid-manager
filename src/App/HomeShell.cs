@@ -33,9 +33,12 @@ public partial class HomeShell : Control
     private Action _onRecruit = null!;
     private Action _onSave = null!;
     private Action _onMenu = null!;
+    private Action<WeekSchedule> _onAdvanceWeek = null!;
+    private string? _lastWeekSummary;
 
     private PanelContainer _contentPanel = null!;
     private Control? _currentContent;
+    private readonly List<OptionButton> _dayPickers = new();
 
     public void Load(
         GuildSave guild,
@@ -47,6 +50,8 @@ public partial class HomeShell : Control
         Action onSave,
         Action<RaiderRecord> onRaider,
         Action onMenu,
+        Action<WeekSchedule> onAdvanceWeek,
+        string? lastWeekSummary,
         string initialTab)
     {
         ArgumentNullException.ThrowIfNull(guild);
@@ -59,6 +64,8 @@ public partial class HomeShell : Control
         _onSave = onSave;
         _onRaider = onRaider;
         _onMenu = onMenu;
+        _onAdvanceWeek = onAdvanceWeek;
+        _lastWeekSummary = lastWeekSummary;
 
         var margin = new MarginContainer();
         margin.SetAnchorsPreset(LayoutPreset.FullRect);
@@ -174,17 +181,70 @@ public partial class HomeShell : Control
         return Wrap(col);
     }
 
-    private static ScrollContainer BuildCalendar()
+    private ScrollContainer BuildCalendar()
     {
+        const int seasonWeeks = 12;
         VBoxContainer col = Padded();
-        col.AddChild(Header("Season calendar"));
-        col.AddChild(Dim("The season you're racing through. (Playing week-by-week from here is the next step.)"));
+        col.AddChild(Header("Calendar"));
 
-        SeasonSchedule calendar = SeasonSchedule.Build(12);
-        foreach (CalendarEvent e in calendar.Events.Where(x => x.Kind != CalendarEventKind.WeeklyReset).OrderBy(x => x.Week))
+        int week = _guild.SeasonWeek;
+        if (week > seasonWeeks)
         {
-            col.AddChild(new Label { Text = $"  Week {e.Week,2}   ·   {e.Name}" });
+            col.AddChild(new Label { Text = $"The season is over — {_guild.History.Count} raids fought." });
+            col.AddChild(Dim("New seasons + aging are the next step."));
+            return Wrap(col);
         }
+
+        SeasonSchedule calendar = SeasonSchedule.Build(seasonWeeks);
+        col.AddChild(new Label { Text = $"Week {week} of {seasonWeeks}" });
+        CalendarEvent? holiday = calendar.HolidayIn(week);
+        if (holiday is not null)
+        {
+            col.AddChild(Dim($"Holiday this week: {holiday.Name} — your raiders expect the time off."));
+        }
+
+        col.AddChild(Dim("Upcoming: " + string.Join("   |   ", calendar.Upcoming(week, 3).Select(e => $"wk{e.Week} {e.Name}"))));
+
+        if (_lastWeekSummary is not null)
+        {
+            var summary = new Label { Text = _lastWeekSummary, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            summary.AddThemeColorOverride("font_color", AppTheme.Gold);
+            col.AddChild(summary);
+        }
+
+        col.AddChild(new Control { CustomMinimumSize = new Vector2(0, 8) });
+        col.AddChild(Header("Plan the week"));
+        col.AddChild(Dim("Set each day; dungeons run a 5-man group, training develops your weakest. Then advance."));
+
+        _dayPickers.Clear();
+        ActivityType[] defaults = { ActivityType.Raid, ActivityType.Dungeon, ActivityType.Raid, ActivityType.Training, ActivityType.Raid, ActivityType.Dungeon, ActivityType.Rest };
+        string[] dayNames = System.Enum.GetNames<Weekday>();
+        for (int d = 0; d < dayNames.Length; d++)
+        {
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 10);
+            row.AddChild(new Label { Text = dayNames[d], CustomMinimumSize = new Vector2(110, 0) });
+
+            var picker = new OptionButton { CustomMinimumSize = new Vector2(160, 0) };
+            foreach (ActivityType activity in System.Enum.GetValues<ActivityType>())
+            {
+                picker.AddItem(activity.ToString());
+            }
+
+            picker.Selected = (int)defaults[d];
+            _dayPickers.Add(picker);
+            row.AddChild(picker);
+            col.AddChild(row);
+        }
+
+        col.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
+        var advance = new Button { Text = "Advance the week", CustomMinimumSize = new Vector2(220, 44) };
+        advance.Pressed += () =>
+        {
+            var perDay = _dayPickers.Select(p => (ActivityType)p.Selected).ToList();
+            _onAdvanceWeek(WeekPlanner.FromDays(_guild, perDay));
+        };
+        col.AddChild(advance);
 
         return Wrap(col);
     }

@@ -61,7 +61,9 @@ world roster — attributes + condition intact — into the playable save) → *
 **Architecture:** the two raider models are **unified** into one `RaiderRecord` (world + guild), and a career
 now **persists its living world** (ADR-0007 first slice): the save pins `WorldSeed` + `GeneratorVersion` +
 `ManagerGuildId` + `SeasonWeek` and materialises your guild, so the world regenerates byte-identically from
-the seed on reload. `dotnet build -warnaserror` + `dotnet test` green (155 tests).
+the seed on reload. The **Calendar tab is now interactive** — plan each day (raid/dungeon/training/rest) and
+**advance the week** through the real season loop (`WeekExecutor`: raids the ladder, dungeons gear, training
+develops, per-raider condition/morale/injury), the season week persisting. `dotnet build -warnaserror` + `dotnet test` green (156 tests).
 **Next (world):** balance the load/injury rates, richer activities (professions/quests/drills), the inbox that
 surfaces the week's events, contracts/transfers, and collapsing the two raider models (`RaiderRecord` ↔ world `Raider`) into one type.
 **[docs/m1-build-plan.md](docs/m1-build-plan.md)** · **[docs/m2-build-plan.md](docs/m2-build-plan.md)**.

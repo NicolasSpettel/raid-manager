@@ -23,6 +23,7 @@ public partial class Main : Control
     private SimInput? _lastInput;
     private SimResult? _lastResult;
     private World? _pendingWorld; // this career's living world, generated at New Career, used for job offers
+    private string? _lastWeekSummary; // the just-advanced week's result, shown on the Calendar tab
 
     public override void _Ready()
     {
@@ -151,15 +152,35 @@ public partial class Main : Control
         }
     }
 
-    // The home hub with tab navigation (Home/Squad/Calendar/Guild/Manager).
+    // The home hub with tab navigation.
     private void ShowHome(string tab = "Home")
     {
         var view = new HomeShell();
         view.SetAnchorsPreset(LayoutPreset.FullRect);
         view.Load(_guild, _difficulty,
             onStartRaid: StartRaid, onCycleDifficulty: CycleDifficulty, onRest: Rest, onRecruit: Recruit, onSave: SaveGuild,
-            onRaider: ShowRaider, onMenu: ShowWelcome, initialTab: tab);
+            onRaider: ShowRaider, onMenu: ShowWelcome, onAdvanceWeek: AdvanceWeek, lastWeekSummary: _lastWeekSummary, initialTab: tab);
         Swap(view);
+    }
+
+    // Run one planned week through the real season loop (GDD §5/§6): raids + activities + condition/morale/injury.
+    private void AdvanceWeek(WeekSchedule schedule)
+    {
+        int week = _guild.SeasonWeek;
+        SeasonSchedule calendar = SeasonSchedule.Build(12);
+        ulong seed = unchecked(_guild.WorldSeed + ((ulong)week * 0x9E3779B1UL));
+        bool holidayGranted = calendar.HolidayIn(week) is not null; // grant any holiday (deny = a morale hit, later)
+
+        WeekResult result = WeekExecutor.Run(
+            _guild, schedule, Encounters.All, week, Lockout.Empty, _difficulty, seed, calendar, holidayGranted);
+
+        _guild = result.Guild with { SeasonWeek = week + 1 };
+        _saves.Save(_guild);
+
+        string frontier = result.FurthestBossIndex >= 0 ? Encounters.All[result.FurthestBossIndex].Name : "no boss";
+        _lastWeekSummary =
+            $"Week {week}: {result.Kills} kills (reached {frontier}), +{result.GearDrops} gear, {result.TrainingSessions} trained, {result.Injured} hurt.";
+        ShowHome("Calendar");
     }
 
     private void ShowRaider(RaiderRecord raider)
