@@ -40,7 +40,7 @@ public class BoundaryTests
     [Fact]
     public void Game_DoesNotDependOn_AppOrGodot()
     {
-        TestResult result = Types.InAssembly(typeof(GameAssembly).Assembly)
+        TestResult result = Types.InAssembly(typeof(Guilds).Assembly)
             .ShouldNot()
             .HaveDependencyOnAny("App", "Godot")
             .GetResult();

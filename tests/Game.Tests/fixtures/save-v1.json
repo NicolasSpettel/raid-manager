@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "createdAtIso": "2026-07-06T00:00:00Z",
+  "guild": {
+    "name": "The Founders",
+    "reputation": 5
+  },
+  "roster": [
+    { "id": "r:0001", "name": "Thara", "classId": "guardian" },
+    { "id": "r:0002", "name": "Mira", "classId": "cleric" }
+  ],
+  "economy": {
+    "gold": 1000
+  }
+}

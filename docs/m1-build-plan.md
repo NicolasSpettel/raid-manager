@@ -71,10 +71,12 @@ registry. **No engine code per class** — pure data through the step 2–4 runt
 a passive dummy using every kit (the Cleric emergently smites when nobody's hurt) and beats the authored
 Warden (`sim run classraid`). Working names — renameable. *(10-raider scale + spec depth come later.)*
 
-### Step 7 — Save/load + migration registry *(introduces the `src/Game` aggregate)*
-`GuildSave { version, guild, roster, … }` owned by `src/Game`; atomic save to `user://saves/`
-(temp+rename+`.bak`); ordered migration fold + schema validate; a v0 fixture round-trips in CI
-(save-format.md). **Exit:** reload restores exact state; migration fixture green.
+### Step 7 — Save/load + migration registry ✅ done
+`src/Game` owns `GuildSave` (guild + roster + economy); `SaveSerializer` runs parse → migrate → validate;
+`FileStorageAdapter` writes atomically (temp → replace → `.bak`); `Guilds.CreateStarter` generates a
+deterministic roster from the class registry (the timestamp is passed in — Game never reads wall-clock,
+per the determinism guard). A frozen `save-v1.json` fixture round-trips through the pipeline in CI. Reload
+restores state; corrupt/versionless blobs raise `SaveException`, never crash. Green.
 
 ### Step 8 — Roster & gear screens (Godot)
 Design-system primitives first (`Frame`, `Panel`, `List`, `StatBar`, `Tooltip`), one `Theme`, a
